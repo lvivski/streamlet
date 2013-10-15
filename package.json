@@ -1,13 +1,18 @@
 {
-  "name": "streamlet",
-  "version": "0.0.1",
-  "dependencies": {
-    "subsequent": "*"
-  },
-  "scripts": {
-    "prepublish": "make -B"
-  },
-  "devDependencies": {
-    "uglify-js": "*"
-  }
+	"name": "streamlet",
+	"version": "0.0.1",
+	"keywords": [
+		"streams",
+		"async",
+		"reactive"
+	],
+	"dependencies": {
+		"subsequent": "*"
+	},
+	"scripts": {
+		"prepublish": "make -B"
+	},
+	"devDependencies": {
+		"uglify-js": "*"
+	}
 }
