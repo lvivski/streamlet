@@ -1,13 +1,17 @@
 (function(global) {
   "use strict";
+  var nextTick;
   if (typeof define === "function" && define.amd) {
-    define(Stream);
+    define([ "subsequent" ], function(subsequent) {
+      nextTick = subsequent;
+      return Stream;
+    });
   } else if (typeof module === "object" && module.exports) {
     module.exports = Stream;
-    var nextTick = require("subsequent");
+    nextTick = require("subsequent");
   } else {
     global.Stream = Stream;
-    var nextTick = global.nextTick;
+    nextTick = global.nextTick;
   }
   function Stream() {
     this.listeners = [];
