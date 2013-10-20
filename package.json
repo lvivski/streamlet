@@ -1,6 +1,7 @@
 {
 	"name": "streamlet",
 	"version": "0.0.1",
+	"author": "Yehor Lvivski <lvivski@gmail.com>",
 	"keywords": [
 		"streams",
 		"async",
@@ -12,7 +13,12 @@
 	"scripts": {
 		"prepublish": "make -B"
 	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/lvivski/streamlet.git"
+	},
 	"devDependencies": {
 		"uglify-js": "*"
-	}
+	},
+	"license": "MIT"
 }

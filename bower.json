@@ -1,0 +1,10 @@
+{
+	"name": "streamlet",
+	"version": "0.0.1",
+	"main": [
+		"streamlet.js"
+	],
+	"dependencies": {
+		"subsequent": "*"
+	}
+}
