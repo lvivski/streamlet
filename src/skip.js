@@ -3,13 +3,11 @@ Stream.prototype.skip = function (count) {
 }
 
 function SkipStream(source, count) {
-	StreamTransformer.call(this, source)
-	this.count = count
+	Stream.call(this)
+	source.listen(function (data) {
+		if (count-- > 0) return
+		this.add(data)
+	}.bind(this))
 }
 
 SkipStream.prototype = Object.create(Stream.prototype)
-
-SkipStream.prototype.add = function (data) {
-	if (this.count-- > 0) return
-	Stream.prototype.add.call(this, data)
-}

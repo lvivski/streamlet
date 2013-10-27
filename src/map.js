@@ -3,13 +3,11 @@ Stream.prototype.map = function (convert) {
 }
 
 function MapStream(source, convert) {
-	StreamTransformer.call(this, source)
-	this.convert = convert
+	Stream.call(this)
+	source.listen(function (data) {
+		data = convert(data)
+		this.add(data)
+	}.bind(this))
 }
 
 MapStream.prototype = Object.create(Stream.prototype)
-
-MapStream.prototype.add = function (data) {
-	data = this.convert(data)
-	Stream.prototype.add.call(this, data)
-}

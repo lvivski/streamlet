@@ -3,13 +3,11 @@ Stream.prototype.filter = function (test) {
 }
 
 function FilterStream(source, test) {
-	StreamTransformer.call(this, source)
-	this.test = test
+	Stream.call(this)
+	source.listen(function (data) {
+		if (test(data))
+			this.add(data)
+	}.bind(this))
 }
 
 FilterStream.prototype = Object.create(Stream.prototype)
-
-FilterStream.prototype.add = function (data) {
-	if (this.test(data))
-		Stream.prototype.add.call(this, data)
-}

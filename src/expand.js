@@ -3,15 +3,13 @@ Stream.prototype.expand = function (expand) {
 }
 
 function ExpandStream(source, expand) {
-	StreamTransformer.call(this, source)
-	this.expand = expand
+	Stream.call(this)
+	source.listen(function (data) {
+		data = expand(data)
+		for (var i in data) {
+			this.add(data[i])
+		}
+	}.bind(this))
 }
 
 ExpandStream.prototype = Object.create(Stream.prototype)
-
-ExpandStream.prototype.add = function (data) {
-	data = this.expand(data)
-	for (var i in data) {
-		Stream.prototype.add.call(this, data[i])
-	}
-}

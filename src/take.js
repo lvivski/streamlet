@@ -3,14 +3,12 @@ Stream.prototype.take = function (count) {
 }
 
 function TakeStream(source, count) {
-	StreamTransformer.call(this, source)
-	this.count = count
+	Stream.call(this)
+	source.listen(function (data) {
+		if (count-- > 0) {
+			this.add(data)
+		}
+	}.bind(this))
 }
 
 TakeStream.prototype = Object.create(Stream.prototype)
-
-TakeStream.prototype.add = function (data) {
-	if (this.count-- > 0) {
-		Stream.prototype.add.call(this, data)
-	}
-}
