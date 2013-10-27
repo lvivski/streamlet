@@ -2,11 +2,6 @@ JS_COMPILER ?= ./node_modules/uglify-js/bin/uglifyjs
 FILES = \
 	src/streamlet.js \
 	src/stream.js \
-	src/map.js \
-	src/filter.js \
-	src/expand.js \
-	src/take.js \
-	src/skip.js \
 	src/event.js \
 
 all: \

@@ -1,6 +1,8 @@
 function EventStream(element, event) {
 	var stream = new Stream
-	element.addEventListener(event, stream.add.bind(stream), false)
+	element.addEventListener(event, function (e) {
+		stream.add(e)
+	}, false)
 	return stream
 }
 

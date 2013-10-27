@@ -17,3 +17,61 @@ Stream.prototype.add = function (data) {
 Stream.prototype.listen = function (listener) {
 	this.listeners.push(listener)
 }
+
+Stream.prototype.map = function (convert) {
+	var stream = new Stream
+
+	this.listen(function (data) {
+		data = convert(data)
+		stream.add(data)
+	})
+
+	return stream
+}
+
+Stream.prototype.filter = function (test) {
+	var stream = new Stream
+
+	this.listen(function (data) {
+		if (test(data))
+			stream.add(data)
+	})
+
+	return stream
+}
+
+Stream.prototype.skip = function (count) {
+	var stream = new Stream
+
+	this.listen(function (data) {
+		if (count-- > 0) return
+		this.add(data)
+	})
+
+	return stream
+}
+
+Stream.prototype.take = function (count) {
+	var stream = new Stream
+
+	this.listen(function (data) {
+		if (count-- > 0) {
+			stream.add(data)
+		}
+	})
+
+	return stream
+}
+
+Stream.prototype.expand = function (expand) {
+	var stream = new Stream
+
+	this.listen(function (data) {
+		data = expand(data)
+		for (var i in data) {
+			stream.add(data[i])
+		}
+	})
+
+	return stream
+}

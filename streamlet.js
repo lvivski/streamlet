@@ -30,65 +30,52 @@
     this.listeners.push(listener);
   };
   Stream.prototype.map = function(convert) {
-    return new MapStream(this, convert);
-  };
-  function MapStream(source, convert) {
-    Stream.call(this);
-    source.listen(function(data) {
+    var stream = new Stream();
+    this.listen(function(data) {
       data = convert(data);
-      this.add(data);
-    }.bind(this));
-  }
-  MapStream.prototype = Object.create(Stream.prototype);
+      stream.add(data);
+    });
+    return stream;
+  };
   Stream.prototype.filter = function(test) {
-    return new FilterStream(this, test);
+    var stream = new Stream();
+    this.listen(function(data) {
+      if (test(data)) stream.add(data);
+    });
+    return stream;
   };
-  function FilterStream(source, test) {
-    Stream.call(this);
-    source.listen(function(data) {
-      if (test(data)) this.add(data);
-    }.bind(this));
-  }
-  FilterStream.prototype = Object.create(Stream.prototype);
-  Stream.prototype.expand = function(expand) {
-    return new ExpandStream(this, expand);
-  };
-  function ExpandStream(source, expand) {
-    Stream.call(this);
-    source.listen(function(data) {
-      data = expand(data);
-      for (var i in data) {
-        this.add(data[i]);
-      }
-    }.bind(this));
-  }
-  ExpandStream.prototype = Object.create(Stream.prototype);
-  Stream.prototype.take = function(count) {
-    return new TakeStream(this, count);
-  };
-  function TakeStream(source, count) {
-    Stream.call(this);
-    source.listen(function(data) {
-      if (count-- > 0) {
-        this.add(data);
-      }
-    }.bind(this));
-  }
-  TakeStream.prototype = Object.create(Stream.prototype);
   Stream.prototype.skip = function(count) {
-    return new SkipStream(this, count);
-  };
-  function SkipStream(source, count) {
-    Stream.call(this);
-    source.listen(function(data) {
+    var stream = new Stream();
+    this.listen(function(data) {
       if (count-- > 0) return;
       this.add(data);
-    }.bind(this));
-  }
-  SkipStream.prototype = Object.create(Stream.prototype);
+    });
+    return stream;
+  };
+  Stream.prototype.take = function(count) {
+    var stream = new Stream();
+    this.listen(function(data) {
+      if (count-- > 0) {
+        stream.add(data);
+      }
+    });
+    return stream;
+  };
+  Stream.prototype.expand = function(expand) {
+    var stream = new Stream();
+    this.listen(function(data) {
+      data = expand(data);
+      for (var i in data) {
+        stream.add(data[i]);
+      }
+    });
+    return stream;
+  };
   function EventStream(element, event) {
     var stream = new Stream();
-    element.addEventListener(event, stream.add.bind(stream), false);
+    element.addEventListener(event, function(e) {
+      stream.add(e);
+    }, false);
     return stream;
   }
   if (typeof window !== "undefined") {
