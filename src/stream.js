@@ -18,60 +18,56 @@ Stream.prototype.listen = function (listener) {
 	this.listeners.push(listener)
 }
 
-Stream.prototype.map = function (convert) {
+Stream.prototype.transform = function (transformer) {
 	var stream = new this.constructor()
-
-	this.listen(function (data) {
-		data = convert(data)
-		stream.add(data)
-	})
-
+	this.listen(transformer(stream))
 	return stream
+}
+
+Stream.prototype.map = function (convert) {
+	return this.transform(function (stream) {
+		return function (data) {
+			data = convert(data)
+			stream.add(data)
+		}
+	})
 }
 
 Stream.prototype.filter = function (test) {
-	var stream = new this.constructor()
-
-	this.listen(function (data) {
-		if (test(data))
-			stream.add(data)
+	return this.transform(function (stream) {
+		return function (data) {
+			if (test(data))
+				stream.add(data)
+		}
 	})
-
-	return stream
 }
 
 Stream.prototype.skip = function (count) {
-	var stream = new this.constructor()
-
-	this.listen(function (data) {
-		if (count-- > 0) return
-		stream.add(data)
-	})
-
-	return stream
-}
-
-Stream.prototype.take = function (count) {
-	var stream = new this.constructor()
-
-	this.listen(function (data) {
-		if (count-- > 0) {
+	return this.transform(function (stream) {
+		return function (data) {
+			if (count-- > 0) return
 			stream.add(data)
 		}
 	})
+}
 
-	return stream
+Stream.prototype.take = function (count) {
+	return this.transform(function (stream) {
+		return function (data) {
+			if (count-- > 0) {
+				stream.add(data)
+			}
+		}
+	})
 }
 
 Stream.prototype.expand = function (expand) {
-	var stream = new this.constructor()
-
-	this.listen(function (data) {
-		data = expand(data)
-		for (var i in data) {
-			stream.add(data[i])
+	return this.transform(function (stream) {
+		return function (data) {
+			data = expand(data)
+			for (var i in data) {
+				stream.add(data[i])
+			}
 		}
 	})
-
-	return stream
 }
