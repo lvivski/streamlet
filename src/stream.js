@@ -19,7 +19,7 @@ Stream.prototype.listen = function (listener) {
 }
 
 Stream.prototype.map = function (convert) {
-	var stream = new Stream
+	var stream = new this.constructor()
 
 	this.listen(function (data) {
 		data = convert(data)
@@ -30,7 +30,7 @@ Stream.prototype.map = function (convert) {
 }
 
 Stream.prototype.filter = function (test) {
-	var stream = new Stream
+	var stream = new this.constructor()
 
 	this.listen(function (data) {
 		if (test(data))
@@ -41,18 +41,18 @@ Stream.prototype.filter = function (test) {
 }
 
 Stream.prototype.skip = function (count) {
-	var stream = new Stream
+	var stream = new this.constructor()
 
 	this.listen(function (data) {
 		if (count-- > 0) return
-		this.add(data)
+		stream.add(data)
 	})
 
 	return stream
 }
 
 Stream.prototype.take = function (count) {
-	var stream = new Stream
+	var stream = new this.constructor()
 
 	this.listen(function (data) {
 		if (count-- > 0) {
@@ -64,7 +64,7 @@ Stream.prototype.take = function (count) {
 }
 
 Stream.prototype.expand = function (expand) {
-	var stream = new Stream
+	var stream = new this.constructor()
 
 	this.listen(function (data) {
 		data = expand(data)

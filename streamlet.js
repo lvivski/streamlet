@@ -30,7 +30,7 @@
     this.listeners.push(listener);
   };
   Stream.prototype.map = function(convert) {
-    var stream = new Stream();
+    var stream = new this.constructor();
     this.listen(function(data) {
       data = convert(data);
       stream.add(data);
@@ -38,22 +38,22 @@
     return stream;
   };
   Stream.prototype.filter = function(test) {
-    var stream = new Stream();
+    var stream = new this.constructor();
     this.listen(function(data) {
       if (test(data)) stream.add(data);
     });
     return stream;
   };
   Stream.prototype.skip = function(count) {
-    var stream = new Stream();
+    var stream = new this.constructor();
     this.listen(function(data) {
       if (count-- > 0) return;
-      this.add(data);
+      stream.add(data);
     });
     return stream;
   };
   Stream.prototype.take = function(count) {
-    var stream = new Stream();
+    var stream = new this.constructor();
     this.listen(function(data) {
       if (count-- > 0) {
         stream.add(data);
@@ -62,7 +62,7 @@
     return stream;
   };
   Stream.prototype.expand = function(expand) {
-    var stream = new Stream();
+    var stream = new this.constructor();
     this.listen(function(data) {
       data = expand(data);
       for (var i in data) {
@@ -71,20 +71,26 @@
     });
     return stream;
   };
-  function EventStream(element, event, constrains) {
-    var stream = new Stream();
+  function SyncStream() {
+    Stream.call(this);
+  }
+  SyncStream.prototype = Object.create(Stream.prototype);
+  SyncStream.prototype.constructor = SyncStream;
+  SyncStream.prototype.add = function(data) {
+    for (var i = 0; i < this.listeners.length; ++i) {
+      this.listeners[i].call(null, data);
+    }
+  };
+  function EventStream(element, event) {
+    var stream = new SyncStream();
     element.addEventListener(event, function(e) {
-      if (Event.PREVENT & constrains) e.preventDefault();
-      if (Event.STOP & constrains) e.stopPropagation();
       stream.add(e);
     }, false);
     return stream;
   }
   if (typeof window !== "undefined") {
-    Event.PREVENT = 1;
-    Event.STOP = 2;
-    window.on = Node.prototype.on = function(event, constrains) {
-      return new EventStream(this, event, constrains);
+    window.on = Node.prototype.on = function(event) {
+      return new EventStream(this, event);
     };
   }
 })(this);

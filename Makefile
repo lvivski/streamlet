@@ -2,6 +2,7 @@ JS_COMPILER ?= ./node_modules/uglify-js/bin/uglifyjs
 FILES = \
 	src/streamlet.js \
 	src/stream.js \
+	src/sync.js \
 	src/event.js \
 
 all: \
