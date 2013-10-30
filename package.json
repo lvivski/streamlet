@@ -1,6 +1,6 @@
 {
 	"name": "streamlet",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"author": "Yehor Lvivski <lvivski@gmail.com>",
 	"keywords": [
 		"streams",
