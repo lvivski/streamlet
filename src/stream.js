@@ -3,7 +3,7 @@ function Stream() {
 }
 
 function handle(listener, data) {
-	nextTick(function () {
+	next(function () {
 		listener(data)
 	})
 }

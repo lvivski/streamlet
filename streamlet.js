@@ -1,23 +1,23 @@
 (function(global) {
   "use strict";
-  var nextTick;
+  var next;
   if (typeof define === "function" && define.amd) {
     define([ "subsequent" ], function(subsequent) {
-      nextTick = subsequent;
+      next = subsequent;
       return Stream;
     });
   } else if (typeof module === "object" && module.exports) {
     module.exports = Stream;
-    nextTick = require("subsequent");
+    next = require("subsequent");
   } else {
-    global.Stream = Stream;
-    nextTick = global.nextTick;
+    global.Streamlet = Stream;
+    next = global.subsequent;
   }
   function Stream() {
     this.listeners = [];
   }
   function handle(listener, data) {
-    nextTick(function() {
+    next(function() {
       listener(data);
     });
   }
@@ -37,42 +37,42 @@
   Stream.prototype.map = function(convert) {
     return this.transform(function(stream) {
       return function(data) {
-	data = convert(data);
-	stream.add(data);
+        data = convert(data);
+        stream.add(data);
       };
     });
   };
   Stream.prototype.filter = function(test) {
     return this.transform(function(stream) {
       return function(data) {
-	if (test(data)) stream.add(data);
+        if (test(data)) stream.add(data);
       };
     });
   };
   Stream.prototype.skip = function(count) {
     return this.transform(function(stream) {
       return function(data) {
-	if (count-- > 0) return;
-	stream.add(data);
+        if (count-- > 0) return;
+        stream.add(data);
       };
     });
   };
   Stream.prototype.take = function(count) {
     return this.transform(function(stream) {
       return function(data) {
-	if (count-- > 0) {
-	  stream.add(data);
-	}
+        if (count-- > 0) {
+          stream.add(data);
+        }
       };
     });
   };
   Stream.prototype.expand = function(expand) {
     return this.transform(function(stream) {
       return function(data) {
-	data = expand(data);
-	for (var i in data) {
-	  stream.add(data[i]);
-	}
+        data = expand(data);
+        for (var i in data) {
+          stream.add(data[i]);
+        }
       };
     });
   };
