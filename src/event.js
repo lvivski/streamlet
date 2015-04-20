@@ -6,8 +6,12 @@ function EventStream(element, event) {
 	return stream
 }
 
-if (typeof window !== 'undefined') {
-	window.on = Node.prototype.on = function (event) {
+if (typeof window === 'object') {
+	window.on = function (event) {
 		return new EventStream(this, event)
+	}
+
+	if(typeof Node === 'object') {
+		Node.prototype.on = window.on
 	}
 }
