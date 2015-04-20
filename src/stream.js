@@ -6,14 +6,14 @@ function Stream() {
 Stream.prototype.add = function (data) {
 	if (this.isDone) return
 
-	handle(this.__listeners__, data)
+	async(handle, this.__listeners__, data)
 }
 
 Stream.prototype.done = function () {
 	if (this.isDone) return
 	this.isDone = true
 
-	handle(this.__listeners__, null, true)
+	async(handle, this.__listeners__, null, true)
 	this.__listeners__ = undefined
 }
 
@@ -93,31 +93,22 @@ Stream.prototype.expand = function (expand) {
 }
 
 Stream.prototype.merge = function (streamTwo) {
-	var stream = new this.constructor(),
+	return Stream.merge(this, streamTwo)
+}
+
+Stream.merge = function (streams) {
+	streams = parse(streams)
+
+	var stream = new Stream,
 		listener = function (data) {
 			stream.add(data)
 		}
 
-	this.listen(listener)
-	streamTwo.listen(listener)
+	if (!streams.length) return stream
+
+	var i = 0
+	while (i < streams.length) {
+		streams[i++].listen(listener)
+	}
 	return stream
-}
-
-function handle(listeners, data, handleDone) {
-	nextTick(function () {
-		var i = 0
-		while (i < listeners.length) {
-			var listener = listeners[i++],
-				update = listener.update,
-				done = listener.done
-
-			if (handleDone) {
-				if (isFunction(done)) {
-					done()
-				}
-			} else {
-				update(data)
-			}
-		}
-	})
 }

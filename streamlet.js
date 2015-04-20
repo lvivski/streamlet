@@ -19,12 +19,12 @@
   }
   Stream.prototype.add = function(data) {
     if (this.isDone) return;
-    handle(this.__listeners__, data);
+    async(handle, this.__listeners__, data);
   };
   Stream.prototype.done = function() {
     if (this.isDone) return;
     this.isDone = true;
-    handle(this.__listeners__, null, true);
+    async(handle, this.__listeners__, null, true);
     this.__listeners__ = undefined;
   };
   Stream.prototype.listen = function(onUpdate, onDone) {
@@ -92,28 +92,20 @@
     });
   };
   Stream.prototype.merge = function(streamTwo) {
-    var stream = new this.constructor(), listener = function(data) {
+    return Stream.merge(this, streamTwo);
+  };
+  Stream.merge = function(streams) {
+    streams = parse(streams);
+    var stream = new Stream(), listener = function(data) {
       stream.add(data);
     };
-    this.listen(listener);
-    streamTwo.listen(listener);
+    if (!streams.length) return stream;
+    var i = 0;
+    while (i < streams.length) {
+      streams[i++].listen(listener);
+    }
     return stream;
   };
-  function handle(listeners, data, handleDone) {
-    nextTick(function() {
-      var i = 0;
-      while (i < listeners.length) {
-        var listener = listeners[i++], update = listener.update, done = listener.done;
-        if (handleDone) {
-          if (isFunction(done)) {
-            done();
-          }
-        } else {
-          update(data);
-        }
-      }
-    });
-  }
   function SyncStream() {
     Stream.call(this);
   }
@@ -121,27 +113,14 @@
   SyncStream.prototype.constructor = SyncStream;
   SyncStream.prototype.add = function(data) {
     if (this.isDone) return;
-    handleSync(this.__listeners__, data);
+    handle(this.__listeners__, data);
   };
   SyncStream.prototype.done = function() {
     if (this.isDone) return;
     this.isDone = true;
-    handleSync(this.__listeners__, null, true);
+    handle(this.__listeners__, null, true);
     this.__listeners__ = undefined;
   };
-  function handleSync(listeners, data, handleDone) {
-    var i = 0;
-    while (i < listeners.length) {
-      var listener = listeners[i++], update = listener.update, done = listener.done;
-      if (handleDone) {
-        if (isFunction(done)) {
-          done();
-        }
-      } else {
-        update(data);
-      }
-    }
-  }
   function EventStream(element, event) {
     var stream = new SyncStream();
     element.addEventListener(event, function(e) {
@@ -156,5 +135,35 @@
   }
   function isFunction(fn) {
     return fn && typeof fn === "function";
+  }
+  function parse(obj) {
+    if (obj.length === 1 && Array.isArray(obj[0])) {
+      return obj[0];
+    } else {
+      var args = new Array(obj.length);
+      for (var i = 0; i < args.length; ++i) {
+        args[i] = obj[i];
+      }
+      return args;
+    }
+  }
+  function handle(listeners, data, handleDone) {
+    var i = 0;
+    while (i < listeners.length) {
+      var listener = listeners[i++], update = listener.update, done = listener.done;
+      if (handleDone) {
+        if (isFunction(done)) {
+          done();
+        }
+      } else {
+        update(data);
+      }
+    }
+  }
+  function async(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    nextTick(function() {
+      fn.apply(null, args);
+    });
   }
 })(this);
