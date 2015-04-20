@@ -1,24 +1,27 @@
 {
-	"name": "streamlet",
-	"version": "0.0.8",
-	"author": "Yehor Lvivski <lvivski@gmail.com>",
-	"keywords": [
-		"streams",
-		"async",
-		"reactive"
-	],
-	"dependencies": {
-		"subsequent": "*"
-	},
-	"scripts": {
-		"prepublish": "make -B"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/lvivski/streamlet.git"
-	},
-	"devDependencies": {
-		"uglify-js": "*"
-	},
-	"license": "MIT"
+  "name": "streamlet",
+  "version": "0.1.0",
+  "author": "Yehor Lvivski <lvivski@gmail.com>",
+  "keywords": [
+    "streams",
+    "async",
+    "reactive"
+  ],
+  "dependencies": {
+    "subsequent": "*"
+  },
+  "scripts": {
+    "prepublish": "make -B",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lvivski/streamlet.git"
+  },
+  "devDependencies": {
+    "mocha": "^2.2.4",
+    "sinon": "^1.14.1",
+    "uglify-js": "*"
+  },
+  "license": "MIT"
 }

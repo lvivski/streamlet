@@ -4,6 +4,7 @@ FILES = \
 	src/stream.js \
 	src/sync.js \
 	src/event.js \
+	src/utils.js \
 
 all: \
 	streamlet.js \

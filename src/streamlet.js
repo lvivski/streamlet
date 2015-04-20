@@ -1,13 +1,13 @@
-var next
+var nextTick
 if (typeof define === 'function' && define.amd) {
 	define(['subsequent'], function (subsequent) {
-		next = subsequent
+		nextTick = subsequent
 		return Stream
 	})
 } else if (typeof module === 'object' && module.exports) {
 	module.exports = Stream
-	next = require('subsequent')
+	nextTick = require('subsequent')
 } else {
 	global.Streamlet = Stream
-	next = global.subsequent
+	nextTick = global.subsequent
 }

@@ -1,17 +1,18 @@
 {
-	"name": "streamlet",
-	"version": "0.0.8",
-	"main": [
-		"streamlet.js"
-	],
-	"ignore": [
-		".*",
-		"src",
-		"Makefile",
-		"index.js",
-		"package.json"
-	],
-	"dependencies": {
-		"subsequent": "*"
-	}
+  "name": "streamlet",
+  "version": "0.1.0",
+  "main": [
+    "streamlet.js"
+  ],
+  "ignore": [
+    ".*",
+    "src",
+    "test",
+    "Makefile",
+    "index.js",
+    "package.json"
+  ],
+  "dependencies": {
+    "subsequent": "*"
+  }
 }
