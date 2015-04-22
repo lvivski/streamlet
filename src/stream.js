@@ -1,28 +1,37 @@
-function Stream() {
+function Stream(fn) {
 	this.__listeners__ = []
-	this.isDone = false
+	if (arguments.length > 0) {
+		var controller = new Controller(this)
+		if (typeof fn == 'function') {
+			try {
+				fn(function (val) {
+						controller.next(val)
+					},
+					function (err) {
+						controller.fail(err)
+					},
+					function () {
+						controller.done()
+					})
+			} catch (e) {
+				controller.fail(e)
+			}
+		} else {
+			controller.add(fn)
+		}
+	}
 }
 
-Stream.prototype.add = function (data) {
-	if (this.isDone) return
+Stream.prototype.isDone = false
+Stream.prototype.isSync = false
 
-	async(handle, this.__listeners__, data)
-}
-
-Stream.prototype.done = function () {
-	if (this.isDone) return
-	this.isDone = true
-
-	async(handle, this.__listeners__, null, true)
-	this.__listeners__ = undefined
-}
-
-Stream.prototype.listen = function (onUpdate, onDone) {
+Stream.prototype.listen = function (onNext, onFail, onDone) {
 	if (this.isDone) return
 
 	var listeners = this.__listeners__,
 		listener = {
-			update: onUpdate,
+			next: onNext,
+			fail: onFail,
 			done: onDone
 		}
 
@@ -34,59 +43,65 @@ Stream.prototype.listen = function (onUpdate, onDone) {
 }
 
 Stream.prototype.transform = function (transformer) {
-	var stream = new this.constructor()
-	this.listen(transformer(stream))
-	return stream
+	var controller = new Controller(new Stream)
+
+	this.listen(transformer(controller), function (reason) {
+		controller.fail(reason)
+	}, function () {
+		controller.done()
+	})
+
+	return controller.stream
 }
 
 Stream.prototype.map = function (convert) {
-	return this.transform(function (stream) {
+	return this.transform(function (controller) {
 		return function (data) {
 			data = convert(data)
-			stream.add(data)
+			controller.add(data)
 		}
 	})
 }
 
 Stream.prototype.filter = function (test) {
-	return this.transform(function (stream) {
+	return this.transform(function (controller) {
 		return function (data) {
 			if (test(data))
-				stream.add(data)
+				controller.add(data)
 		}
 	})
 }
 
 Stream.prototype.skip = function (count) {
-	return this.transform(function (stream) {
+	return this.transform(function (controller) {
 		return function (data) {
 			if (count-- > 0) {
-				stream.done()
+				controller.done()
 			} else {
-				stream.add(data)
+				controller.add(data)
 			}
 		}
 	})
 }
 
 Stream.prototype.take = function (count) {
-	return this.transform(function (stream) {
+	return this.transform(function (controller) {
 		return function (data) {
 			if (count-- > 0) {
-				stream.add(data)
+				controller.add(data)
 			} else {
-				stream.done()
+				controller.done()
 			}
 		}
 	})
 }
 
 Stream.prototype.expand = function (expand) {
-	return this.transform(function (stream) {
+	return this.transform(function (controller) {
 		return function (data) {
 			data = expand(data)
 			for (var i in data) {
-				stream.add(data[i])
+				controller.add(data[i])
 			}
 		}
 	})

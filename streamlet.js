@@ -13,24 +13,34 @@
     global.Streamlet = Stream;
     nextTick = global.subsequent;
   }
-  function Stream() {
+  function Stream(fn) {
     this.__listeners__ = [];
-    this.isDone = false;
+    if (arguments.length > 0) {
+      var controller = new Controller(this);
+      if (typeof fn == "function") {
+        try {
+          fn(function(val) {
+            controller.next(val);
+          }, function(err) {
+            controller.fail(err);
+          }, function() {
+            controller.done();
+          });
+        } catch (e) {
+          controller.fail(e);
+        }
+      } else {
+        controller.add(fn);
+      }
+    }
   }
-  Stream.prototype.add = function(data) {
-    if (this.isDone) return;
-    async(handle, this.__listeners__, data);
-  };
-  Stream.prototype.done = function() {
-    if (this.isDone) return;
-    this.isDone = true;
-    async(handle, this.__listeners__, null, true);
-    this.__listeners__ = undefined;
-  };
-  Stream.prototype.listen = function(onUpdate, onDone) {
+  Stream.prototype.isDone = false;
+  Stream.prototype.isSync = false;
+  Stream.prototype.listen = function(onNext, onFail, onDone) {
     if (this.isDone) return;
     var listeners = this.__listeners__, listener = {
-      update: onUpdate,
+      next: onNext,
+      fail: onFail,
       done: onDone
     };
     listeners.push(listener);
@@ -40,53 +50,57 @@
     };
   };
   Stream.prototype.transform = function(transformer) {
-    var stream = new this.constructor();
-    this.listen(transformer(stream));
-    return stream;
+    var controller = new Controller(new Stream());
+    this.listen(transformer(controller), function(reason) {
+      controller.fail(reason);
+    }, function() {
+      controller.done();
+    });
+    return controller.stream;
   };
   Stream.prototype.map = function(convert) {
-    return this.transform(function(stream) {
+    return this.transform(function(controller) {
       return function(data) {
         data = convert(data);
-        stream.add(data);
+        controller.add(data);
       };
     });
   };
   Stream.prototype.filter = function(test) {
-    return this.transform(function(stream) {
+    return this.transform(function(controller) {
       return function(data) {
-        if (test(data)) stream.add(data);
+        if (test(data)) controller.add(data);
       };
     });
   };
   Stream.prototype.skip = function(count) {
-    return this.transform(function(stream) {
+    return this.transform(function(controller) {
       return function(data) {
         if (count-- > 0) {
-          stream.done();
+          controller.done();
         } else {
-          stream.add(data);
+          controller.add(data);
         }
       };
     });
   };
   Stream.prototype.take = function(count) {
-    return this.transform(function(stream) {
+    return this.transform(function(controller) {
       return function(data) {
         if (count-- > 0) {
-          stream.add(data);
+          controller.add(data);
         } else {
-          stream.done();
+          controller.done();
         }
       };
     });
   };
   Stream.prototype.expand = function(expand) {
-    return this.transform(function(stream) {
+    return this.transform(function(controller) {
       return function(data) {
         data = expand(data);
         for (var i in data) {
-          stream.add(data[i]);
+          controller.add(data[i]);
         }
       };
     });
@@ -94,35 +108,69 @@
   Stream.prototype.merge = function(streamTwo) {
     return Stream.merge(this, streamTwo);
   };
+  function Controller(stream) {
+    this.stream = stream;
+  }
+  Controller.NEXT = "next";
+  Controller.FAIL = "fail";
+  Controller.DONE = "done";
+  Controller.prototype.add = Controller.prototype.next = function(data) {
+    this.update(Controller.NEXT, data);
+  };
+  Controller.prototype.fail = function(reason) {
+    this.update(Controller.FAIL, reason);
+  };
+  Controller.prototype.done = function() {
+    this.update(Controller.DONE);
+  };
+  Controller.prototype.update = function(type, data) {
+    var stream = this.stream;
+    if (stream.isDone) return;
+    if (stream.isSync) {
+      Controller.handle(stream.__listeners__, type, data);
+    } else {
+      delay(Controller.handle, stream.__listeners__, type, data);
+    }
+    if (type !== Controller.NEXT) {
+      stream.isDone = true;
+      stream.__listeners__ = undefined;
+    }
+  };
+  Controller.handle = function(listeners, type, data) {
+    if (!listeners.length) return;
+    var i = 0;
+    while (i < listeners.length) {
+      var listener = listeners[i++], fn = listener[type], fail = listener.fail;
+      if (isFunction(fn)) {
+        try {
+          fn(data);
+        } catch (e) {
+          if (isFunction(fail)) {
+            fail(e);
+          } else {
+            throw e;
+          }
+        }
+      }
+    }
+  };
+  Stream.create = function() {
+    return new Controller(new Stream());
+  };
   Stream.merge = function(streams) {
     streams = parse(streams);
-    var stream = new Stream(), listener = function(data) {
-      stream.add(data);
+    var controller = new Controller(new Stream()), listener = function(data) {
+      controller.add(data);
     };
-    if (!streams.length) return stream;
     var i = 0;
     while (i < streams.length) {
       streams[i++].listen(listener);
     }
-    return stream;
-  };
-  function SyncStream() {
-    Stream.call(this);
-  }
-  SyncStream.prototype = Object.create(Stream.prototype);
-  SyncStream.prototype.constructor = SyncStream;
-  SyncStream.prototype.add = function(data) {
-    if (this.isDone) return;
-    handle(this.__listeners__, data);
-  };
-  SyncStream.prototype.done = function() {
-    if (this.isDone) return;
-    this.isDone = true;
-    handle(this.__listeners__, null, true);
-    this.__listeners__ = undefined;
+    return controller.stream;
   };
   function EventStream(element, event) {
-    var stream = new SyncStream();
+    var stream = new Stream();
+    stream.isSync = true;
     element.addEventListener(event, function(e) {
       stream.add(e);
     }, false);
@@ -143,27 +191,14 @@
     if (obj.length === 1 && Array.isArray(obj[0])) {
       return obj[0];
     } else {
-      var args = new Array(obj.length);
-      for (var i = 0; i < args.length; ++i) {
-        args[i] = obj[i];
+      var args = new Array(obj.length), i = 0;
+      while (i < args.length) {
+        args[i] = obj[i++];
       }
       return args;
     }
   }
-  function handle(listeners, data, handleDone) {
-    var i = 0;
-    while (i < listeners.length) {
-      var listener = listeners[i++], update = listener.update, done = listener.done;
-      if (handleDone) {
-        if (isFunction(done)) {
-          done();
-        }
-      } else {
-        update(data);
-      }
-    }
-  }
-  function async(fn) {
+  function delay(fn) {
     var args = Array.prototype.slice.call(arguments, 1);
     nextTick(function() {
       fn.apply(null, args);

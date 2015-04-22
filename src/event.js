@@ -1,5 +1,6 @@
 function EventStream(element, event) {
-	var stream = new SyncStream
+	var stream = new Stream
+	stream.isSync = true
 	element.addEventListener(event, function (e) {
 		stream.add(e)
 	}, false)
@@ -11,7 +12,7 @@ if (typeof window === 'object') {
 		return new EventStream(this, event)
 	}
 
-	if(typeof Node === 'object') {
+	if (typeof Node === 'object') {
 		Node.prototype.on = window.on
 	}
 }
