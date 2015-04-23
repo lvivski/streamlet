@@ -1,5 +1,5 @@
-Stream.create = function () {
-	return new Controller(new Stream)
+Stream.create = function (isSync) {
+	return new Controller(new Stream(isSync))
 }
 
 

@@ -1,10 +1,9 @@
 function EventStream(element, event) {
-	var stream = new Stream
-	stream.isSync = true
+	var controller = Stream.create(true)
 	element.addEventListener(event, function (e) {
-		stream.add(e)
+		controller.add(e)
 	}, false)
-	return stream
+	return controller.stream
 }
 
 if (typeof window === 'object') {

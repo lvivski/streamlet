@@ -16,8 +16,8 @@ function Stream(fn) {
 			} catch (e) {
 				controller.fail(e)
 			}
-		} else {
-			controller.add(fn)
+		} else if (fn) {
+			this.isSync = true
 		}
 	}
 }
@@ -43,7 +43,7 @@ Stream.prototype.listen = function (onNext, onFail, onDone) {
 }
 
 Stream.prototype.transform = function (transformer) {
-	var controller = new Controller(new Stream)
+	var controller = new Controller(new Stream(this.isSync))
 
 	this.listen(transformer(controller), function (reason) {
 		controller.fail(reason)

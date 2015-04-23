@@ -29,8 +29,8 @@
         } catch (e) {
           controller.fail(e);
         }
-      } else {
-        controller.add(fn);
+      } else if (fn) {
+        this.isSync = true;
       }
     }
   }
@@ -50,7 +50,7 @@
     };
   };
   Stream.prototype.transform = function(transformer) {
-    var controller = new Controller(new Stream());
+    var controller = new Controller(new Stream(this.isSync));
     this.listen(transformer(controller), function(reason) {
       controller.fail(reason);
     }, function() {
@@ -154,8 +154,8 @@
       }
     }
   };
-  Stream.create = function() {
-    return new Controller(new Stream());
+  Stream.create = function(isSync) {
+    return new Controller(new Stream(isSync));
   };
   Stream.merge = function(streams) {
     streams = parse(streams);
@@ -169,12 +169,11 @@
     return controller.stream;
   };
   function EventStream(element, event) {
-    var stream = new Stream();
-    stream.isSync = true;
+    var controller = Stream.create(true);
     element.addEventListener(event, function(e) {
-      stream.add(e);
+      controller.add(e);
     }, false);
-    return stream;
+    return controller.stream;
   }
   if (typeof window === "object") {
     window.on = function(event) {
