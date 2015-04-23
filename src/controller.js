@@ -29,7 +29,7 @@ Controller.prototype.update = function (type, data) {
 		delay(Controller.handle, stream.__listeners__, type, data)
 	}
 
-	if (type !== Controller.NEXT) {
+	if (type === Controller.DONE) {
 		stream.isDone = true
 		stream.__listeners__ = undefined
 	}
