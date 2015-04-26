@@ -1,4 +1,4 @@
-function Stream(fn) {
+function Observable(fn) {
 	this.__listeners__ = []
 	if (arguments.length > 0) {
 		var controller = new Controller(this)
@@ -16,16 +16,14 @@ function Stream(fn) {
 			} catch (e) {
 				controller.fail(e)
 			}
-		} else if (fn) {
-			this.isSync = true
 		}
 	}
 }
 
-Stream.prototype.isDone = false
-Stream.prototype.isSync = false
+Observable.prototype.isDone = false
+Observable.prototype.isSync = false
 
-Stream.prototype.listen = function (onNext, onFail, onDone) {
+Observable.prototype.listen = function (onNext, onFail, onDone) {
 	if (this.isDone) return
 
 	var listeners = this.__listeners__,
@@ -42,8 +40,8 @@ Stream.prototype.listen = function (onNext, onFail, onDone) {
 	}
 }
 
-Stream.prototype.transform = function (transformer) {
-	var controller = new Controller(new Stream(this.isSync))
+Observable.prototype.transform = function (transformer) {
+	var controller = this.isSync ? Observable.controlSync() : Observable.control()
 
 	this.listen(transformer(controller), function (reason) {
 		controller.fail(reason)
@@ -54,7 +52,7 @@ Stream.prototype.transform = function (transformer) {
 	return controller.stream
 }
 
-Stream.prototype.map = function (convert) {
+Observable.prototype.map = function (convert) {
 	return this.transform(function (controller) {
 		return function (data) {
 			data = convert(data)
@@ -63,7 +61,7 @@ Stream.prototype.map = function (convert) {
 	})
 }
 
-Stream.prototype.filter = function (test) {
+Observable.prototype.filter = function (test) {
 	return this.transform(function (controller) {
 		return function (data) {
 			if (test(data))
@@ -72,7 +70,7 @@ Stream.prototype.filter = function (test) {
 	})
 }
 
-Stream.prototype.skip = function (count) {
+Observable.prototype.skip = function (count) {
 	return this.transform(function (controller) {
 		return function (data) {
 			if (count-- > 0) {
@@ -84,7 +82,7 @@ Stream.prototype.skip = function (count) {
 	})
 }
 
-Stream.prototype.take = function (count) {
+Observable.prototype.take = function (count) {
 	return this.transform(function (controller) {
 		return function (data) {
 			if (count-- > 0) {
@@ -96,7 +94,7 @@ Stream.prototype.take = function (count) {
 	})
 }
 
-Stream.prototype.expand = function (expand) {
+Observable.prototype.expand = function (expand) {
 	return this.transform(function (controller) {
 		return function (data) {
 			data = expand(data)
@@ -107,6 +105,6 @@ Stream.prototype.expand = function (expand) {
 	})
 }
 
-Stream.prototype.merge = function (streamTwo) {
-	return Stream.merge(this, streamTwo)
+Observable.prototype.merge = function (streamTwo) {
+	return Observable.merge(this, streamTwo)
 }

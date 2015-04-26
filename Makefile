@@ -1,10 +1,9 @@
 JS_COMPILER ?= ./node_modules/uglify-js/bin/uglifyjs
 FILES = \
 	src/streamlet.js \
-	src/stream.js \
+	src/observable.js \
 	src/controller.js \
 	src/extra.js \
-	src/event.js \
 	src/utils.js \
 
 all: \
