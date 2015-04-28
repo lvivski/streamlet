@@ -1,7 +1,5 @@
-var LISTENERS = '__listeners' + Math.random() + '__'
-
 function Observable(fn) {
-	this[LISTENERS] = []
+	this.__listeners__ = []
 	if (arguments.length > 0) {
 		var controller = new Controller(this)
 		if (typeof fn == 'function') {
@@ -22,19 +20,13 @@ function Observable(fn) {
 	}
 }
 
-Object.defineProperty(Observable.prototype, LISTENERS, {
-	configurable: true,
-	writable: true,
-	value: undefined
-})
-
 Observable.prototype.isDone = false
 Observable.prototype.isSync = false
 
 Observable.prototype.listen = function (onNext, onFail, onDone) {
 	if (this.isDone) return
 
-	var listeners = this[LISTENERS],
+	var listeners = this.__listeners__,
 		listener = {
 			next: onNext,
 			fail: onFail,

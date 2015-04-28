@@ -24,14 +24,14 @@ Controller.prototype.update = function (type, data) {
 	if (stream.isDone) return
 
 	if (stream.isSync) {
-		Controller.handle(stream[LISTENERS], type, data)
+		Controller.handle(stream.__listeners__, type, data)
 	} else {
-		delay(Controller.handle, stream[LISTENERS], type, data)
+		delay(Controller.handle, stream.__listeners__, type, data)
 	}
 
 	if (type === Controller.DONE) {
 		stream.isDone = true
-		stream[LISTENERS] = undefined
+		stream.__listeners__ = undefined
 	}
 }
 
