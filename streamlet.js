@@ -13,8 +13,9 @@
     global.Streamlet = Observable;
     nextTick = global.subsequent;
   }
+  var LISTENERS = "__listeners" + Math.random() + "__";
   function Observable(fn) {
-    this.__listeners__ = [];
+    this[LISTENERS] = [];
     if (arguments.length > 0) {
       var controller = new Controller(this);
       if (typeof fn == "function") {
@@ -32,11 +33,16 @@
       }
     }
   }
+  Object.defineProperty(Observable.prototype, LISTENERS, {
+    configurable: true,
+    writable: true,
+    value: undefined
+  });
   Observable.prototype.isDone = false;
   Observable.prototype.isSync = false;
   Observable.prototype.listen = function(onNext, onFail, onDone) {
     if (this.isDone) return;
-    var listeners = this.__listeners__, listener = {
+    var listeners = this[LISTENERS], listener = {
       next: onNext,
       fail: onFail,
       done: onDone
@@ -125,13 +131,13 @@
     var stream = this.stream;
     if (stream.isDone) return;
     if (stream.isSync) {
-      Controller.handle(stream.__listeners__, type, data);
+      Controller.handle(stream[LISTENERS], type, data);
     } else {
-      delay(Controller.handle, stream.__listeners__, type, data);
+      delay(Controller.handle, stream[LISTENERS], type, data);
     }
     if (type === Controller.DONE) {
       stream.isDone = true;
-      stream.__listeners__ = undefined;
+      stream[LISTENERS] = undefined;
     }
   };
   Controller.handle = function(listeners, type, data) {

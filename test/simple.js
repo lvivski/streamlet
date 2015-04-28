@@ -1,10 +1,10 @@
 var assert = require('assert'),
 	Sinon = require('sinon'),
-	Stream = require('../')
+	Observable = require('../')
 
 describe('Stream', function () {
 	specify('sends data to listeners', function (done) {
-		var controller = Stream.create()
+		var controller = Observable.control()
 		controller.stream.listen(function (data) {
 			assert.equal(data, 'data')
 			done()
@@ -13,7 +13,7 @@ describe('Stream', function () {
 	})
 
 	specify('throws to onFail from next', function (done) {
-		var controller = Stream.create()
+		var controller = Observable.control()
 		controller.stream.listen(function () {
 			throw new Error
 		}, function () {
@@ -23,7 +23,7 @@ describe('Stream', function () {
 	})
 
 	specify('fails to listeners', function (done) {
-		var controller = Stream.create()
+		var controller = Observable.control()
 		controller.stream.listen(null, function () {
 			done()
 		})
@@ -31,7 +31,7 @@ describe('Stream', function () {
 	})
 
 	specify('fires done', function (done) {
-		var controller = Stream.create()
+		var controller = Observable.control()
 		controller.stream.listen(null, null, function () {
 			done()
 		})
@@ -40,7 +40,7 @@ describe('Stream', function () {
 
 	specify('supports function passing', function (done) {
 		var callback = Sinon.spy()
-		var stream = new Stream(function (next, fail, done) {
+		var stream = new Observable(function (next, fail, done) {
 			setTimeout(function () {
 				next()
 			}, 10)

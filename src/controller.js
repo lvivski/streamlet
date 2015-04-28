@@ -1,5 +1,5 @@
 function Controller(stream) {
-	this.stream = stream;
+	this.stream = stream
 }
 
 Controller.NEXT = 'next'
@@ -24,14 +24,14 @@ Controller.prototype.update = function (type, data) {
 	if (stream.isDone) return
 
 	if (stream.isSync) {
-		Controller.handle(stream.__listeners__, type, data)
+		Controller.handle(stream[LISTENERS], type, data)
 	} else {
-		delay(Controller.handle, stream.__listeners__, type, data)
+		delay(Controller.handle, stream[LISTENERS], type, data)
 	}
 
 	if (type === Controller.DONE) {
 		stream.isDone = true
-		stream.__listeners__ = undefined
+		stream[LISTENERS] = undefined
 	}
 }
 
