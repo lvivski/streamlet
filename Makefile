@@ -4,7 +4,7 @@ FILES = \
 	src/observable.js \
 	src/controller.js \
 	src/extra.js \
-	src/utils.js \
+	src/util.js \
 
 all: \
 	streamlet.js \
