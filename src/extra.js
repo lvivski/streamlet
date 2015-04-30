@@ -29,7 +29,7 @@ Observable.merge = function (streams) {
 	streams = parse(arguments)
 
 	var isSync = streams[0].isSync,
-		controller = isSync ? Observable.controlSync() : Observable.control()
+		controller = isSync ? Observable.controlSync() : Observable.control(),
 		listener = function (data) {
 			controller.add(data)
 		}
