@@ -40,6 +40,18 @@ Observable.prototype.listen = function (onNext, onFail, onDone) {
 	}
 }
 
+Observable.prototype.pipe = function (stream) {
+	var controller = new Controller(stream)
+	this.listen(function (data) {
+		controller.next(data)
+	}, function (reason) {
+		controller.fail(reason)
+	}, function () {
+		controller.done()
+	})
+	return stream
+}
+
 Observable.prototype.transform = function (transformer) {
 	var controller = this.isSync ? Observable.controlSync() : Observable.control()
 

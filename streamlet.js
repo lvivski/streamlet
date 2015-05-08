@@ -47,6 +47,17 @@
       listeners.splice(index, 1);
     };
   };
+  Observable.prototype.pipe = function(stream) {
+    var controller = new Controller(stream);
+    this.listen(function(data) {
+      controller.next(data);
+    }, function(reason) {
+      controller.fail(reason);
+    }, function() {
+      controller.done();
+    });
+    return stream;
+  };
   Observable.prototype.transform = function(transformer) {
     var controller = this.isSync ? Observable.controlSync() : Observable.control();
     this.listen(transformer(controller), function(reason) {
@@ -113,7 +124,7 @@
   Controller.FAIL = "fail";
   Controller.DONE = "done";
   Controller.prototype.add = Controller.prototype.next = function(data) {
-    this.update(Controller.NEXT, data);
+    return this.update(Controller.NEXT, data);
   };
   Controller.prototype.fail = function(reason) {
     this.update(Controller.FAIL, reason);
