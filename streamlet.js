@@ -124,7 +124,7 @@
   Controller.FAIL = "fail";
   Controller.DONE = "done";
   Controller.prototype.add = Controller.prototype.next = function(data) {
-    return this.update(Controller.NEXT, data);
+    this.update(Controller.NEXT, data);
   };
   Controller.prototype.fail = function(reason) {
     this.update(Controller.FAIL, reason);
