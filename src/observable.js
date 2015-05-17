@@ -32,30 +32,22 @@ Observable.prototype.listen = function (onNext, onFail, onDone) {
 			fail: onFail,
 			done: onDone
 		}
-
 	listeners.push(listener)
+
 	return function () {
-		var index = listeners.indexOf(listener)
-		listeners.splice(index, 1)
+		var index = (listeners || []).indexOf(listener)
+		if (index !== -1) {
+			listeners.splice(index, 1)
+		}
 	}
 }
 
-Observable.prototype.pipe = function (stream) {
-	var controller = new Controller(stream)
-	this.listen(function (data) {
-		controller.next(data)
-	}, function (reason) {
-		controller.fail(reason)
-	}, function () {
-		controller.done()
-	})
-	return stream
-}
-
 Observable.prototype.transform = function (transformer) {
-	var controller = this.isSync ? Observable.controlSync() : Observable.control()
+	var controller = Observable.defer(this.isSync)
 
-	this.listen(transformer(controller), function (reason) {
+	this.listen(
+		transformer(controller)
+	, function (reason) {
 		controller.fail(reason)
 	}, function () {
 		controller.done()
@@ -64,59 +56,16 @@ Observable.prototype.transform = function (transformer) {
 	return controller.stream
 }
 
-Observable.prototype.map = function (convert) {
-	return this.transform(function (controller) {
-		return function (data) {
-			data = convert(data)
-			controller.add(data)
-		}
-	})
-}
+Observable.prototype.pipe = function (stream) {
+	var controller = new Controller(stream)
 
-Observable.prototype.filter = function (test) {
-	return this.transform(function (controller) {
-		return function (data) {
-			if (test(data))
-				controller.add(data)
-		}
+	this.listen(function (data) {
+		controller.next(data)
+	}, function (reason) {
+		controller.fail(reason)
+	}, function () {
+		controller.done()
 	})
-}
 
-Observable.prototype.skip = function (count) {
-	return this.transform(function (controller) {
-		return function (data) {
-			if (count-- > 0) {
-				controller.done()
-			} else {
-				controller.add(data)
-			}
-		}
-	})
-}
-
-Observable.prototype.take = function (count) {
-	return this.transform(function (controller) {
-		return function (data) {
-			if (count-- > 0) {
-				controller.add(data)
-			} else {
-				controller.done()
-			}
-		}
-	})
-}
-
-Observable.prototype.expand = function (expand) {
-	return this.transform(function (controller) {
-		return function (data) {
-			data = expand(data)
-			for (var i in data) {
-				controller.add(data[i])
-			}
-		}
-	})
-}
-
-Observable.prototype.merge = function (streamTwo) {
-	return Observable.merge(this, streamTwo)
+	return stream
 }
