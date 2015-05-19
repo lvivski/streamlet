@@ -50,8 +50,6 @@ Controller.handle = function (listeners, type, data) {
 			} catch (e) {
 				if (isFunction(fail)) {
 					fail(e)
-				} else {
-					throw e
 				}
 			}
 		}

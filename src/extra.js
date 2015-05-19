@@ -120,7 +120,7 @@ Observable.merge = function (streams) {
 	streams = parse(arguments)
 
 	var isSync = streams[0].isSync,
-		controller = Observable.defer(isSync),
+		controller = Observable.control(isSync),
 		listener = function (data) {
 			controller.add(data)
 		}

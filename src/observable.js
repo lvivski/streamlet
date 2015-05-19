@@ -43,7 +43,7 @@ Observable.prototype.listen = function (onNext, onFail, onDone) {
 }
 
 Observable.prototype.transform = function (transformer) {
-	var controller = Observable.defer(this.isSync)
+	var controller = Observable.control(this.isSync)
 
 	this.listen(
 		transformer(controller)

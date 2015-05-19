@@ -24,29 +24,21 @@ describe('Stream', function () {
 
 	specify('fails to listeners', function (done) {
 		var controller = Observable.control()
-		controller.stream.listen(null, function () {
-			done()
-		})
+		controller.stream.listen(null, done)
 		controller.fail()
 	})
 
 	specify('fires done', function (done) {
 		var controller = Observable.control()
-		controller.stream.listen(null, null, function () {
-			done()
-		})
+		controller.stream.listen(null, null, done)
 		controller.done()
 	})
 
 	specify('supports function passing', function (done) {
 		var callback = Sinon.spy()
 		var stream = new Observable(function (next, fail, done) {
-			setTimeout(function () {
-				next()
-			}, 10)
-			setTimeout(function () {
-				done()
-			}, 0)
+			setTimeout(next, 10)
+			setTimeout(done, 0)
 		})
 		stream.listen(callback, callback, function () {
 			callback()
