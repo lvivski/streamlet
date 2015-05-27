@@ -50,23 +50,23 @@
     };
   };
   Observable.prototype.transform = function(transformer) {
-    var controller = Observable.control(this.isSync);
-    this.listen(transformer(controller), function(reason) {
+    var controller = Observable.control(this.isSync), unsubscribe = this.listen(transformer(controller), function(reason) {
       controller.fail(reason);
     }, function() {
       controller.done();
     });
+    controller.stream.end(unsubscribe);
     return controller.stream;
   };
   Observable.prototype.pipe = function(stream) {
-    var controller = new Controller(stream);
-    this.listen(function(data) {
+    var controller = new Controller(stream), unsubscribe = this.listen(function(data) {
       controller.next(data);
     }, function(reason) {
       controller.fail(reason);
     }, function() {
       controller.done();
     });
+    stream.end(unsubscribe);
     return stream;
   };
   function Controller(stream) {
@@ -204,8 +204,8 @@
       };
     });
   };
-  Observable.prototype.merge = function(streamTwo) {
-    return Observable.merge(this, streamTwo);
+  Observable.prototype.merge = function(stream) {
+    return Observable.merge(this, stream);
   };
   Observable.control = function(isSync) {
     var observable = new Observable();
@@ -221,12 +221,16 @@
   };
   Observable.merge = function(streams) {
     streams = parse(arguments);
-    var isSync = streams[0].isSync, controller = Observable.control(isSync), listener = function(data) {
+    var isSync = streams[0].isSync, controller = Observable.control(isSync), count = streams.length, i = 0, onNext = function(data) {
       controller.add(data);
+    }, onFail = function(reason) {
+      controller.fail(reason);
+    }, onDone = function() {
+      if (--count > 0) return;
+      controller.done();
     };
-    var i = 0;
-    while (i < streams.length) {
-      streams[i++].listen(listener);
+    while (i < count) {
+      streams[i++].listen(onNext, onFail, onDone);
     }
     return controller.stream;
   };

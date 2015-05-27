@@ -43,29 +43,31 @@ Observable.prototype.listen = function (onNext, onFail, onDone) {
 }
 
 Observable.prototype.transform = function (transformer) {
-	var controller = Observable.control(this.isSync)
+	var controller = Observable.control(this.isSync),
+		unsubscribe = this.listen(
+			transformer(controller)
+		, function (reason) {
+			controller.fail(reason)
+		}, function () {
+			controller.done()
+		})
 
-	this.listen(
-		transformer(controller)
-	, function (reason) {
-		controller.fail(reason)
-	}, function () {
-		controller.done()
-	})
+	controller.stream.end(unsubscribe)
 
 	return controller.stream
 }
 
 Observable.prototype.pipe = function (stream) {
-	var controller = new Controller(stream)
+	var controller = new Controller(stream),
+		unsubscribe = this.listen(function (data) {
+			controller.next(data)
+		}, function (reason) {
+			controller.fail(reason)
+		}, function () {
+			controller.done()
+		})
 
-	this.listen(function (data) {
-		controller.next(data)
-	}, function (reason) {
-		controller.fail(reason)
-	}, function () {
-		controller.done()
-	})
+	stream.end(unsubscribe)
 
 	return stream
 }

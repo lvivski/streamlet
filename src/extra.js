@@ -98,8 +98,8 @@ Observable.prototype.scan = function (combine, seed) {
 	})
 }
 
-Observable.prototype.merge = function (streamTwo) {
-	return Observable.merge(this, streamTwo)
+Observable.prototype.merge = function (stream) {
+	return Observable.merge(this, stream)
 }
 
 Observable.control = function (isSync) {
@@ -121,13 +121,22 @@ Observable.merge = function (streams) {
 
 	var isSync = streams[0].isSync,
 		controller = Observable.control(isSync),
-		listener = function (data) {
+		count = streams.length,
+		i = 0,
+		onNext = function (data) {
 			controller.add(data)
+		},
+		onFail = function (reason) {
+			controller.fail(reason)
+		},
+		onDone = function () {
+			if (--count > 0) return
+			controller.done()
 		}
 
-	var i = 0
-	while (i < streams.length) {
-		streams[i++].listen(listener)
+	while (i < count) {
+		streams[i++].listen(onNext, onFail, onDone)
 	}
+
 	return controller.stream
 }
