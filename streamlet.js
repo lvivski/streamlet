@@ -1,4 +1,4 @@
-(function(global) {
+(function(root) {
   "use strict";
   var nextTick;
   if (typeof define === "function" && define.amd) {
@@ -10,8 +10,8 @@
     module.exports = Observable;
     nextTick = require("subsequent");
   } else {
-    global.Streamlet = Observable;
-    nextTick = global.subsequent;
+    root.Streamlet = Observable;
+    nextTick = root.subsequent;
   }
   function Observable(fn) {
     this.__listeners__ = [];
@@ -254,4 +254,4 @@
       fn.apply(null, args);
     });
   }
-})(this);
+})(Function("return this")());
