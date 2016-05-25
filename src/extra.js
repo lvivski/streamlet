@@ -109,11 +109,26 @@ Observable.control = function (isSync) {
 }
 
 Observable.fromEvent = function (element, eventName) {
-	var observable = new Observable(function (next) {
-		element.addEventListener(eventName, next, false)
-	})
-	observable.isSync = true
-	return observable
+	var controller = Observable.control(true)
+	element.addEventListener(eventName, function (e) {
+		controller.add(e)
+	}, false)
+	return controller.stream
+}
+
+Observable.fromPromise = function (promise) {
+	var controller = Observable.control()
+		onFullfilled = function (data) {
+			controller.add(data)
+			controller.done()
+		},
+		onRejected = function (reason) {
+			controller.fail(reason)
+			controller.done()
+		}
+	promise.then(onFullfilled, onRejected)
+
+	return controller.stream
 }
 
 Observable.merge = function (streams) {
