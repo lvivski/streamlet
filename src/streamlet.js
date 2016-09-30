@@ -1,13 +1,13 @@
-var nextTick
+// var Promise
 if (typeof define === 'function' && define.amd) {
-	define(['subsequent'], function (subsequent) {
-		nextTick = subsequent
+	define(['davy'], function (Davy) {
+		// Promise = Davy
 		return Observable
 	})
 } else if (typeof module === 'object' && module.exports) {
 	module.exports = Observable
-	nextTick = require('subsequent')
+	// Promise = require('davy')
 } else {
 	root.Streamlet = Observable
-	nextTick = root.subsequent
+	// Promise = root.Davy
 }

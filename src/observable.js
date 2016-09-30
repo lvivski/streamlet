@@ -1,73 +1,42 @@
-function Observable(fn) {
-	this.__listeners__ = []
-	if (arguments.length > 0) {
-		var controller = new Controller(this)
-		if (typeof fn == 'function') {
-			try {
-				fn(function (val) {
-						controller.next(val)
-					},
-					function (err) {
-						controller.fail(err)
-					},
-					function () {
-						controller.done()
-					})
-			} catch (e) {
-				controller.fail(e)
-			}
-		}
-	}
+function Observable(subscriber) {
+    if (typeof subscriber !== 'function') {
+        throw new TypeError('Observable initializer must be a function')
+    }
+    this.__subscriber__ = subscriber
 }
 
-Observable.prototype.isDone = false
-Observable.prototype.isSync = false
-
-Observable.prototype.listen = function (onNext, onFail, onDone) {
-	if (this.isDone) return
-
-	var listeners = this.__listeners__,
-		listener = {
-			next: onNext,
-			fail: onFail,
-			done: onDone
-		}
-	listeners.push(listener)
-
-	return function () {
-		var index = (listeners || []).indexOf(listener)
-		if (index !== -1) {
-			listeners.splice(index, 1)
-		}
-	}
+Observable.prototype['@@observable'] = function () {
+    return this
 }
 
-Observable.prototype.transform = function (transformer) {
-	var controller = Observable.control(this.isSync),
-		unsubscribe = this.listen(
-			transformer(controller)
-		, function (reason) {
-			controller.fail(reason)
-		}, function () {
-			controller.done()
-		})
-
-	controller.stream.end(unsubscribe)
-
-	return controller.stream
+Observable.prototype.subscribe = function (observer) {
+    if (typeof observer === 'function') {
+        var args = Array.prototype.slice.call(arguments, 1)
+        observer = {
+            next: observer,
+            error: args[0],
+            complete: args[1]
+        }
+    }
+    return new Subscription(observer, this.__subscriber__)
 }
 
-Observable.prototype.pipe = function (stream) {
-	var controller = new Controller(stream),
-		unsubscribe = this.listen(function (data) {
-			controller.next(data)
-		}, function (reason) {
-			controller.fail(reason)
-		}, function () {
-			controller.done()
-		})
-
-	stream.end(unsubscribe)
-
-	return stream
+Observable.prototype.forEach = function (fn) {
+    var self = this
+    return new Promise(function (resolve, reject) {
+        if (typeof fn !== 'function') {
+            return Promise.reject(new TypeError(fn + ' is not a function'))
+        }
+        return self.subscribe({
+            next: function (value) {
+                try {
+                    return fn(value)
+                } catch (err) {
+                    reject(err)
+                }
+            },
+            error: reject,
+            complete: resolve
+        })
+    })
 }
