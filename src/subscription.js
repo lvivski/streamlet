@@ -8,7 +8,7 @@ function Subscription(observer, subscriber) {
 
     if (typeof observer.start === 'function') {
         observer.start(this)
-        if (this.closed) return
+        if (Subscription.isClosed(this)) return
     }
 
     observer = new Observer(this)
@@ -27,7 +27,7 @@ function Subscription(observer, subscriber) {
         Observer.error(this, e)
     }
 
-    if (this.closed) {
+    if (Subscription.isClosed(this)) {
         Subscription.cleanup(this)
     }
 }
@@ -38,22 +38,28 @@ Subscription.prototype.unsubscribe = function() {
     Subscription.unsubscribe(this)
 }
 
-Subscription.prototype.closed = false
+Object.defineProperty(Subscription.prototype, 'closed', {
+    get: function () { return Subscription.isClosed(this) },
+    configurable: true
+})
+
+Subscription.isClosed = function (subscription) {
+    return subscription.__observer__ === undefined
+}
 
 Subscription.wrapCleanup = function (subscription) {
     return function () { subscription.unsubscribe() }
 }
 
 Subscription.unsubscribe = function (subscription) {
-    if (subscription.closed) return
-    subscription.closed = true
+    if (Subscription.isClosed(subscription)) return
     subscription.__observer__ = undefined
     Subscription.cleanup(subscription)
 }
 
 Subscription.cleanup = function (subscription) {
     var cleanup = subscription.__cleanup__
-    if (!cleanup) return;
+    if (!cleanup) return
     subscription.__cleanup__ = undefined
     cleanup()
 }

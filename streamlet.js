@@ -56,7 +56,7 @@
     this.__cleanup__ = undefined;
     if (typeof observer.start === "function") {
       observer.start(this);
-      if (this.closed) return;
+      if (Subscription.isClosed(this)) return;
     }
     observer = new Observer(this);
     try {
@@ -72,7 +72,7 @@
     } catch (e) {
       Observer.error(this, e);
     }
-    if (this.closed) {
+    if (Subscription.isClosed(this)) {
       Subscription.cleanup(this);
     }
   }
@@ -80,15 +80,22 @@
   Subscription.prototype.unsubscribe = function() {
     Subscription.unsubscribe(this);
   };
-  Subscription.prototype.closed = false;
+  Object.defineProperty(Subscription.prototype, "closed", {
+    get: function() {
+      return Subscription.isClosed(this);
+    },
+    configurable: true
+  });
+  Subscription.isClosed = function(subscription) {
+    return subscription.__observer__ === undefined;
+  };
   Subscription.wrapCleanup = function(subscription) {
     return function() {
       subscription.unsubscribe();
     };
   };
   Subscription.unsubscribe = function(subscription) {
-    if (subscription.closed) return;
-    subscription.closed = true;
+    if (Subscription.isClosed(subscription)) return;
     subscription.__observer__ = undefined;
     Subscription.cleanup(subscription);
   };
@@ -104,8 +111,9 @@
   Observer.prototype = {};
   Object.defineProperty(Observer.prototype, "closed", {
     get: function() {
-      return this.__subscription__.closed;
-    }
+      return Subscription.isClosed(this.__subscription__);
+    },
+    configurable: true
   });
   Observer.prototype.next = function(value) {
     return Observer.next(this.__subscription__, value);
@@ -116,46 +124,51 @@
   Observer.prototype.complete = function(value) {
     return Observer.complete(this.__subscription__, value);
   };
-  Observer.NEXT = "next";
-  Observer.ERROR = "error";
-  Observer.COMPLETE = "complete";
+  Observer.SUCCESS = "next";
+  Observer.FAILURE = "error";
+  Observer.DONE = "complete";
   Observer.next = function(subscription, value) {
-    return Observer.handle(subscription, Observer.NEXT, value);
+    return Observer.handle(subscription, Observer.SUCCESS, value);
   };
   Observer.error = function(subscription, reason) {
-    return Observer.handle(subscription, Observer.ERROR, reason);
+    return Observer.handle(subscription, Observer.FAILURE, reason);
   };
   Observer.complete = function(subscription, value) {
-    return Observer.handle(subscription, Observer.COMPLETE, value);
+    return Observer.handle(subscription, Observer.DONE, value);
   };
   Observer.handle = function(subscription, type, data) {
-    if (subscription.closed && type === Observer.ERROR) throw data;
-    if (subscription.closed) return;
+    if (Subscription.isClosed(subscription) && type === Observer.FAILURE) throw data;
+    if (Subscription.isClosed(subscription)) return;
     var observer = subscription.__observer__;
-    if (!observer) return;
-    var fn;
+    if (type === Observer.DONE) {
+      subscription.__observer__ = undefined;
+    }
     try {
-      fn = observer[type];
+      var fn = observer[type];
       if (fn) {
         if (typeof fn !== "function") {
           throw new TypeError(fn + " is not a function");
         }
         data = fn(data);
       } else {
-        if (type === Observer.ERROR) {
+        if (type === Observer.FAILURE) {
           throw data;
         }
         data = undefined;
       }
     } catch (e) {
       try {
-        Subscription.cleanup(subscription);
+        if (type === Observer.SUCCESS) {
+          Subscription.unsubscribe(subscription);
+        } else {
+          Subscription.cleanup(subscription);
+        }
       } finally {
         throw e;
       }
     }
-    if (type === Observer.COMPLETE || type === Observer.ERROR) {
-      subscription.__observer__ = undefined;
+    if (type === Observer.DONE || type === Observer.FAILURE) {
+      Subscription.unsubscribe(subscription);
       Subscription.cleanup(subscription);
     }
     return data;
