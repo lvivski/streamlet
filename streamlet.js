@@ -1,250 +1,203 @@
 (function(root) {
   "use strict";
-  var nextTick;
   if (typeof define === "function" && define.amd) {
-    define([ "subsequent" ], function(subsequent) {
-      nextTick = subsequent;
+    define([ "davy" ], function(Davy) {
       return Observable;
     });
   } else if (typeof module === "object" && module.exports) {
     module.exports = Observable;
-    nextTick = require("subsequent");
   } else {
     root.Streamlet = Observable;
-    nextTick = root.subsequent;
   }
-  function Observable(fn) {
-    this.__listeners__ = [];
-    if (arguments.length > 0) {
-      var controller = new Controller(this);
-      if (typeof fn == "function") {
-        try {
-          fn(function(val) {
-            controller.next(val);
-          }, function(err) {
-            controller.fail(err);
-          }, function() {
-            controller.done();
-          });
-        } catch (e) {
-          controller.fail(e);
-        }
+  function Observable(subscriber) {
+    if (typeof subscriber !== "function") {
+      throw new TypeError("Observable initializer must be a function");
+    }
+    this.__subscriber__ = subscriber;
+  }
+  Observable.prototype["@@observable"] = function() {
+    return this;
+  };
+  Observable.prototype.subscribe = function(observer) {
+    if (typeof observer === "function") {
+      var args = Array.prototype.slice.call(arguments, 1);
+      observer = {
+        next: observer,
+        error: args[0],
+        complete: args[1]
+      };
+    }
+    return new Subscription(observer, this.__subscriber__);
+  };
+  Observable.prototype.forEach = function(fn) {
+    var self = this;
+    return new Promise(function(resolve, reject) {
+      if (typeof fn !== "function") {
+        return Promise.reject(new TypeError(fn + " is not a function"));
       }
-    }
-  }
-  Observable.prototype.isDone = false;
-  Observable.prototype.isSync = false;
-  Observable.prototype.listen = function(onNext, onFail, onDone) {
-    if (this.isDone) return;
-    var listeners = this.__listeners__, listener = {
-      next: onNext,
-      fail: onFail,
-      done: onDone
-    };
-    listeners.push(listener);
-    return function() {
-      var index = (listeners || []).indexOf(listener);
-      if (index !== -1) {
-        listeners.splice(index, 1);
-      }
-    };
-  };
-  Observable.prototype.transform = function(transformer) {
-    var controller = Observable.control(this.isSync), unsubscribe = this.listen(transformer(controller), function(reason) {
-      controller.fail(reason);
-    }, function() {
-      controller.done();
-    });
-    controller.stream.end(unsubscribe);
-    return controller.stream;
-  };
-  Observable.prototype.pipe = function(stream) {
-    var controller = new Controller(stream), unsubscribe = this.listen(function(data) {
-      controller.next(data);
-    }, function(reason) {
-      controller.fail(reason);
-    }, function() {
-      controller.done();
-    });
-    stream.end(unsubscribe);
-    return stream;
-  };
-  function Controller(stream) {
-    this.stream = stream;
-  }
-  Controller.NEXT = "next";
-  Controller.FAIL = "fail";
-  Controller.DONE = "done";
-  Controller.prototype.add = Controller.prototype.next = function(data) {
-    this.update(Controller.NEXT, data);
-  };
-  Controller.prototype.fail = function(reason) {
-    this.update(Controller.FAIL, reason);
-  };
-  Controller.prototype.done = function() {
-    this.update(Controller.DONE);
-  };
-  Controller.prototype.update = function(type, data) {
-    var stream = this.stream;
-    if (stream.isDone) return;
-    if (stream.isSync) {
-      Controller.handle(stream.__listeners__, type, data);
-    } else {
-      delay(Controller.handle, stream.__listeners__, type, data);
-    }
-    if (type === Controller.DONE) {
-      stream.isDone = true;
-      stream.__listeners__ = undefined;
-    }
-  };
-  Controller.handle = function(listeners, type, data) {
-    if (!listeners.length) return;
-    var i = 0;
-    while (i < listeners.length) {
-      var listener = listeners[i++], fn = listener[type], fail = listener.fail;
-      if (isFunction(fn)) {
-        try {
-          fn(data);
-        } catch (e) {
-          if (isFunction(fail)) {
-            fail(e);
+      return self.subscribe({
+        next: function(value) {
+          try {
+            return fn(value);
+          } catch (err) {
+            reject(err);
           }
+        },
+        error: reject,
+        complete: resolve
+      });
+    });
+  };
+  function Subscription(observer, subscriber) {
+    if (typeof observer !== "object") {
+      throw new TypeError("Observer must be an object");
+    }
+    this.__observer__ = observer;
+    this.__cleanup__ = undefined;
+    if (typeof observer.start === "function") {
+      observer.start(this);
+      if (this.closed) return;
+    }
+    observer = new Observer(this);
+    try {
+      var cleanup = subscriber(observer);
+      if (cleanup != null) {
+        if (typeof cleanup.unsubscribe === "function") {
+          cleanup = Subscription.wrapCleanup(cleanup);
+        } else if (typeof cleanup !== "function") {
+          throw new TypeError(cleanup + " is not a function");
         }
+        this.__cleanup__ = cleanup;
+      }
+    } catch (e) {
+      Observer.error(this, e);
+    }
+    if (this.closed) {
+      Subscription.cleanup(this);
+    }
+  }
+  Subscription.prototype = {};
+  Subscription.prototype.unsubscribe = function() {
+    Subscription.unsubscribe(this);
+  };
+  Subscription.prototype.closed = false;
+  Subscription.wrapCleanup = function(subscription) {
+    return function() {
+      subscription.unsubscribe();
+    };
+  };
+  Subscription.unsubscribe = function(subscription) {
+    if (subscription.closed) return;
+    subscription.closed = true;
+    subscription.__observer__ = undefined;
+    Subscription.cleanup(subscription);
+  };
+  Subscription.cleanup = function(subscription) {
+    var cleanup = subscription.__cleanup__;
+    if (!cleanup) return;
+    subscription.__cleanup__ = undefined;
+    cleanup();
+  };
+  function Observer(subscription) {
+    this.__subscription__ = subscription;
+  }
+  Observer.prototype = {};
+  Object.defineProperty(Observer.prototype, "closed", {
+    get: function() {
+      return this.__subscription__.closed;
+    }
+  });
+  Observer.prototype.next = function(value) {
+    return Observer.next(this.__subscription__, value);
+  };
+  Observer.prototype.error = function(reason) {
+    return Observer.error(this.__subscription__, reason);
+  };
+  Observer.prototype.complete = function(value) {
+    return Observer.complete(this.__subscription__, value);
+  };
+  Observer.NEXT = "next";
+  Observer.ERROR = "error";
+  Observer.COMPLETE = "complete";
+  Observer.next = function(subscription, value) {
+    return Observer.handle(subscription, Observer.NEXT, value);
+  };
+  Observer.error = function(subscription, reason) {
+    return Observer.handle(subscription, Observer.ERROR, reason);
+  };
+  Observer.complete = function(subscription, value) {
+    return Observer.handle(subscription, Observer.COMPLETE, value);
+  };
+  Observer.handle = function(subscription, type, data) {
+    if (subscription.closed && type === Observer.ERROR) throw data;
+    if (subscription.closed) return;
+    var observer = subscription.__observer__;
+    if (!observer) return;
+    var fn;
+    try {
+      fn = observer[type];
+      if (fn) {
+        if (typeof fn !== "function") {
+          throw new TypeError(fn + " is not a function");
+        }
+        data = fn(data);
+      } else {
+        if (type === Observer.ERROR) {
+          throw data;
+        }
+        data = undefined;
+      }
+    } catch (e) {
+      try {
+        Subscription.cleanup(subscription);
+      } finally {
+        throw e;
       }
     }
-  };
-  Observable.prototype["catch"] = function(onFail) {
-    return this.listen(null, onFail);
-  };
-  Observable.prototype.end = function(onDone) {
-    return this.listen(null, null, onDone);
-  };
-  Observable.prototype.map = function(convert) {
-    return this.transform(function(controller) {
-      return function(data) {
-        data = convert(data);
-        controller.add(data);
-      };
-    });
-  };
-  Observable.prototype.filter = function(test) {
-    return this.transform(function(controller) {
-      return function(data) {
-        if (!test(data)) return;
-        controller.add(data);
-      };
-    });
-  };
-  Observable.prototype.skip = function(count) {
-    return this.transform(function(controller) {
-      return function(data) {
-        if (count-- > 0) return;
-        controller.add(data);
-      };
-    });
-  };
-  Observable.prototype.skipWhile = function(test) {
-    return this.transform(function(controller) {
-      return function(data) {
-        if (test(data)) return;
-        controller.add(data);
-      };
-    });
-  };
-  Observable.prototype.skipDuplicates = function(compare, seed) {
-    compare || (compare = function(a, b) {
-      return a === b;
-    });
-    return this.transform(function(controller) {
-      return function(data) {
-        if (compare(data, seed)) return;
-        controller.add(seed = data);
-      };
-    });
-  };
-  Observable.prototype.take = function(count) {
-    return this.transform(function(controller) {
-      return function(data) {
-        if (count-- > 0) {
-          controller.add(data);
-        } else {
-          controller.done();
-        }
-      };
-    });
-  };
-  Observable.prototype.takeWhile = function(test) {
-    return this.transform(function(controller) {
-      return function(data) {
-        if (test(data)) {
-          controller.add(data);
-        } else {
-          controller.done();
-        }
-      };
-    });
-  };
-  Observable.prototype.expand = function(expand) {
-    return this.transform(function(controller) {
-      return function(data) {
-        data = expand(data);
-        for (var i in data) {
-          controller.add(data[i]);
-        }
-      };
-    });
-  };
-  Observable.prototype.scan = function(combine, seed) {
-    return this.transform(function(controller) {
-      return function(data) {
-        if (seed != null) {
-          data = combine(seed, data);
-        }
-        controller.add(seed = data);
-      };
-    });
-  };
-  Observable.prototype.merge = function(stream) {
-    return Observable.merge(this, stream);
-  };
-  Observable.control = function(isSync) {
-    var observable = new Observable();
-    observable.isSync = isSync;
-    return new Controller(observable);
-  };
-  Observable.fromEvent = function(element, eventName) {
-    var controller = Observable.control(true);
-    element.addEventListener(eventName, function(e) {
-      controller.add(e);
-    }, false);
-    return controller.stream;
-  };
-  Observable.fromPromise = function(promise) {
-    var controller = Observable.control();
-    onFullfilled = function(data) {
-      controller.add(data);
-      controller.done();
-    }, onRejected = function(reason) {
-      controller.fail(reason);
-      controller.done();
-    };
-    promise.then(onFullfilled, onRejected);
-    return controller.stream;
-  };
-  Observable.merge = function(streams) {
-    streams = parse(arguments);
-    var isSync = streams[0].isSync, controller = Observable.control(isSync), count = streams.length, i = 0, onNext = function(data) {
-      controller.add(data);
-    }, onFail = function(reason) {
-      controller.fail(reason);
-    }, onDone = function() {
-      if (--count > 0) return;
-      controller.done();
-    };
-    while (i < count) {
-      streams[i++].listen(onNext, onFail, onDone);
+    if (type === Observer.COMPLETE || type === Observer.ERROR) {
+      subscription.__observer__ = undefined;
+      Subscription.cleanup(subscription);
     }
-    return controller.stream;
+    return data;
+  };
+  Observable.of = function() {
+    var args = Array.prototype.slice.call(arguments);
+    return new Observable(function(observer) {
+      for (var i = 0; i < args.length; ++i) {
+        observer.next(args[i]);
+      }
+      observer.complete();
+    });
+  };
+  Observable.from = function(obj) {
+    if (obj == null) throw new TypeError(obj + " is not an object");
+    var method = obj["@@observable"];
+    if (typeof method === "function") {
+      var observable = method.call(obj);
+      if (Object(observable) !== observable) throw new TypeError(observable + " is not an object");
+      if (observable.constructor === Observable) return observable;
+      return new Observable(function(observer) {
+        return observable.subscribe(observer);
+      });
+    }
+    if (typeof obj === "object" && typeof obj.next === "function") {
+      return new Observable(function(observer) {
+        var n;
+        while (!(n = obj.next()).done) {
+          observer.next(n.value);
+        }
+        observer.complete();
+      });
+    }
+    if (Array.isArray(obj)) {
+      return new Observable(function(observer) {
+        for (var i = 0; i < obj.length; ++i) {
+          observer.next(obj[i]);
+        }
+        observer.complete();
+      });
+    }
+    throw new TypeError(obj + " is not observable");
   };
   function isFunction(fn) {
     return fn && typeof fn === "function";
@@ -259,11 +212,5 @@
       }
       return args;
     }
-  }
-  function delay(fn) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    nextTick(function() {
-      fn.apply(null, args);
-    });
   }
 })(Function("return this")());
