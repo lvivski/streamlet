@@ -8,6 +8,7 @@
     "reactive"
   ],
   "dependencies": {
+    "davy": "^1.1.1",
     "subsequent": "^1.0.0"
   },
   "scripts": {
@@ -19,6 +20,7 @@
     "url": "https://github.com/lvivski/streamlet.git"
   },
   "devDependencies": {
+    "es-observable-tests": "*",
     "mocha": "^2.2.4",
     "sinon": "^1.14.1",
     "uglify-js": "*"
