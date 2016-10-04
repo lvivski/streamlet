@@ -1,6 +1,6 @@
 {
   "name": "streamlet",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": [
     "streamlet.js"
   ],
@@ -13,6 +13,7 @@
     "package.json"
   ],
   "dependencies": {
-    "subsequent": "*"
+    "subsequent": "*",
+    "davy": "*"
   }
 }
