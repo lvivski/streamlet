@@ -48,6 +48,16 @@
       });
     });
   };
+  Observable.prototype.transform = function(transformer) {
+    var self = this;
+    return new Observable(function(observer) {
+      return self.subscribe(transformer(observer), function(error) {
+        return observer.error(error);
+      }, function(value) {
+        return observer.complete(value);
+      });
+    });
+  };
   function Subscription(observer, subscriber) {
     if (typeof observer !== "object") {
       throw new TypeError("Observer must be an object");
@@ -60,7 +70,18 @@
     }
     observer = new Observer(this);
     try {
-      var cleanup = subscriber(observer);
+      var cleanup;
+      if (subscriber.length > 1) {
+        cleanup = subscriber(function(value) {
+          return observer.next(value);
+        }, function(error) {
+          return observer.error(error);
+        }, function(value) {
+          return observer.complete(value);
+        });
+      } else {
+        cleanup = subscriber(observer);
+      }
       if (cleanup != null) {
         if (typeof cleanup.unsubscribe === "function") {
           cleanup = Subscription.wrapCleanup(cleanup);
@@ -131,10 +152,12 @@
     return Observer.handle(subscription, Observer.DONE, value);
   };
   Observer.handle = function(subscription, type, data) {
-    if (Subscription.isClosed(subscription) && type === Observer.FAILURE) throw data;
-    if (Subscription.isClosed(subscription)) return;
+    if (Subscription.isClosed(subscription)) {
+      if (type === Observer.FAILURE) throw data;
+      return;
+    }
     var observer = subscription.__observer__;
-    if (type === Observer.DONE) {
+    if (type === Observer.DONE || type === Observer.FAILURE) {
       subscription.__observer__ = undefined;
     }
     try {
@@ -162,7 +185,6 @@
       }
     }
     if (type === Observer.DONE || type === Observer.FAILURE) {
-      Subscription.unsubscribe(subscription);
       Subscription.cleanup(subscription);
     }
     return data;
