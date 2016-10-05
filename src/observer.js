@@ -37,10 +37,12 @@ Observer.complete = function (subscription, value) {
 }
 
 Observer.handle = function (subscription, type, data) {
-    if (Subscription.isClosed(subscription) && type === Observer.FAILURE) throw data
-	if (Subscription.isClosed(subscription)) return
+    if (Subscription.isClosed(subscription)) {
+		if (type === Observer.FAILURE) throw data
+		return
+	}
 	var observer = subscription.__observer__
-	if (type === Observer.DONE) {
+	if (type === Observer.DONE || type === Observer.FAILURE) {
 		subscription.__observer__ = undefined
 	}
 	try {
@@ -69,7 +71,6 @@ Observer.handle = function (subscription, type, data) {
 		}
 	}
 	if (type === Observer.DONE || type === Observer.FAILURE) {
-		Subscription.unsubscribe(subscription)
 		Subscription.cleanup(subscription)
 	}
 	return data
