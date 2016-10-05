@@ -14,7 +14,19 @@ function Subscription(observer, subscriber) {
     observer = new Observer(this)
 
     try {
-        var cleanup = subscriber(observer)
+        var cleanup
+        if (subscriber.length > 1) {
+            cleanup = subscriber(function (value) {
+                    return observer.next(value)
+                }, function (error) {
+                    return observer.error(error)
+                }, function (value) {
+                    return observer.complete(value)
+                })
+        } else {
+            cleanup = subscriber(observer)
+        }
+
         if (cleanup != null) {
             if (typeof cleanup.unsubscribe === 'function') {
                 cleanup = Subscription.wrapCleanup(cleanup)
