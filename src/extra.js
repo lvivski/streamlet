@@ -1,4 +1,4 @@
-Observable.of = function () {
+defineMethod(Observable, 'of', function of() {
 	var args = Array.prototype.slice.call(arguments)
 	return new Observable(function (observer) {
 		for (var i = 0; i < args.length; ++i) {
@@ -6,9 +6,9 @@ Observable.of = function () {
 		}
 		observer.complete()
 	})
-}
+})
 
-Observable.from = function (obj) {
+defineMethod(Observable, 'from', function from(obj) {
 	if (obj == null)
 		throw new TypeError(obj + ' is not an object')
 
@@ -49,4 +49,4 @@ Observable.from = function (obj) {
 	}
 
 	throw new TypeError(obj + ' is not observable')
-}
+})

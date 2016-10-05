@@ -4,22 +4,21 @@ function Observer(subscription) {
 
 Observer.prototype = {}
 
-Object.defineProperty(Observer.prototype, 'closed', {
-	get: function () { return Subscription.isClosed(this.__subscription__) },
-	configurable: true
+defineProperty(Observer.prototype, 'closed', function closed() {
+	return Subscription.isClosed(this.__subscription__)
 })
 
-Observer.prototype.next = function(value) {
+defineMethod(Observer.prototype, 'next', function next(value) {
 	return Observer.next(this.__subscription__, value)
-}
+})
 
-Observer.prototype.error = function(reason) {
+defineMethod(Observer.prototype, 'error', function error(reason) {
 	return Observer.error(this.__subscription__, reason)
-}
+})
 
-Observer.prototype.complete = function(value) {
+defineMethod(Observer.prototype, 'complete', function complete(value) {
 	return Observer.complete(this.__subscription__, value)
-}
+})
 
 Observer.SUCCESS = 'next'
 Observer.FAILURE = 'error'

@@ -34,13 +34,12 @@ function Subscription(observer, subscriber) {
 
 Subscription.prototype = {}
 
-Subscription.prototype.unsubscribe = function() {
+defineMethod(Subscription.prototype, 'unsubscribe', function unsubscribe() {
     Subscription.unsubscribe(this)
-}
+})
 
-Object.defineProperty(Subscription.prototype, 'closed', {
-    get: function () { return Subscription.isClosed(this) },
-    configurable: true
+defineProperty(Subscription.prototype, 'closed', function closed() {
+    return Subscription.isClosed(this)
 })
 
 Subscription.isClosed = function (subscription) {

@@ -15,10 +15,10 @@
     }
     this.__subscriber__ = subscriber;
   }
-  Observable.prototype["@@observable"] = function() {
+  defineMethod(Observable.prototype, "@@observable", function $$observable() {
     return this;
-  };
-  Observable.prototype.subscribe = function(observer) {
+  });
+  defineMethod(Observable.prototype, "subscribe", function subscribe(observer) {
     if (typeof observer === "function") {
       var args = Array.prototype.slice.call(arguments, 1);
       observer = {
@@ -28,7 +28,7 @@
       };
     }
     return new Subscription(observer, this.__subscriber__);
-  };
+  });
   Observable.prototype.forEach = function(fn) {
     var self = this;
     return new Promise(function(resolve, reject) {
@@ -77,14 +77,11 @@
     }
   }
   Subscription.prototype = {};
-  Subscription.prototype.unsubscribe = function() {
+  defineMethod(Subscription.prototype, "unsubscribe", function unsubscribe() {
     Subscription.unsubscribe(this);
-  };
-  Object.defineProperty(Subscription.prototype, "closed", {
-    get: function() {
-      return Subscription.isClosed(this);
-    },
-    configurable: true
+  });
+  defineProperty(Subscription.prototype, "closed", function closed() {
+    return Subscription.isClosed(this);
   });
   Subscription.isClosed = function(subscription) {
     return subscription.__observer__ === undefined;
@@ -109,21 +106,18 @@
     this.__subscription__ = subscription;
   }
   Observer.prototype = {};
-  Object.defineProperty(Observer.prototype, "closed", {
-    get: function() {
-      return Subscription.isClosed(this.__subscription__);
-    },
-    configurable: true
+  defineProperty(Observer.prototype, "closed", function closed() {
+    return Subscription.isClosed(this.__subscription__);
   });
-  Observer.prototype.next = function(value) {
+  defineMethod(Observer.prototype, "next", function next(value) {
     return Observer.next(this.__subscription__, value);
-  };
-  Observer.prototype.error = function(reason) {
+  });
+  defineMethod(Observer.prototype, "error", function error(reason) {
     return Observer.error(this.__subscription__, reason);
-  };
-  Observer.prototype.complete = function(value) {
+  });
+  defineMethod(Observer.prototype, "complete", function complete(value) {
     return Observer.complete(this.__subscription__, value);
-  };
+  });
   Observer.SUCCESS = "next";
   Observer.FAILURE = "error";
   Observer.DONE = "complete";
@@ -173,28 +167,30 @@
     }
     return data;
   };
-  Observable.of = function() {
+  defineMethod(Observable, "of", function of() {
     var args = Array.prototype.slice.call(arguments);
-    return new Observable(function(observer) {
+    var Constructor = typeof this === "function" ? this : Observable;
+    return new Constructor(function(observer) {
       for (var i = 0; i < args.length; ++i) {
         observer.next(args[i]);
       }
       observer.complete();
     });
-  };
-  Observable.from = function(obj) {
+  });
+  defineMethod(Observable, "from", function from(obj) {
     if (obj == null) throw new TypeError(obj + " is not an object");
+    var Constructor = typeof this === "function" ? this : Observable;
     var method = obj["@@observable"];
     if (typeof method === "function") {
       var observable = method.call(obj);
       if (Object(observable) !== observable) throw new TypeError(observable + " is not an object");
-      if (observable.constructor === Observable) return observable;
-      return new Observable(function(observer) {
+      if (observable.constructor === Constructor) return observable;
+      return new Constructor(function(observer) {
         return observable.subscribe(observer);
       });
     }
     if (typeof obj === "object" && typeof obj.next === "function") {
-      return new Observable(function(observer) {
+      return new Constructor(function(observer) {
         var n;
         while (!(n = obj.next()).done) {
           observer.next(n.value);
@@ -203,7 +199,7 @@
       });
     }
     if (Array.isArray(obj)) {
-      return new Observable(function(observer) {
+      return new Constructor(function(observer) {
         for (var i = 0; i < obj.length; ++i) {
           observer.next(obj[i]);
         }
@@ -211,19 +207,23 @@
       });
     }
     throw new TypeError(obj + " is not observable");
-  };
+  });
   function isFunction(fn) {
     return fn && typeof fn === "function";
   }
-  function parse(obj) {
-    if (obj.length === 1 && Array.isArray(obj[0])) {
-      return obj[0];
-    } else {
-      var args = new Array(obj.length), i = 0;
-      while (i < args.length) {
-        args[i] = obj[i++];
-      }
-      return args;
-    }
+  function defineProperty(obj, propName, getter) {
+    Object.defineProperty(obj, propName, {
+      get: getter,
+      enumerable: false,
+      configurable: true
+    });
+  }
+  function defineMethod(obj, methodName, fn) {
+    Object.defineProperty(obj, methodName, {
+      value: fn,
+      writable: true,
+      enumerable: false,
+      configurable: true
+    });
   }
 })(Function("return this")());

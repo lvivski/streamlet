@@ -5,21 +5,21 @@ function Observable(subscriber) {
     this.__subscriber__ = subscriber
 }
 
-Observable.prototype['@@observable'] = function () {
-    return this
-}
+defineMethod(Observable.prototype, '@@observable', function $$observable() {
+	return this
+})
 
-Observable.prototype.subscribe = function (observer) {
-    if (typeof observer === 'function') {
-        var args = Array.prototype.slice.call(arguments, 1)
-        observer = {
-            next: observer,
-            error: args[0],
-            complete: args[1]
-        }
-    }
-    return new Subscription(observer, this.__subscriber__)
-}
+defineMethod(Observable.prototype, 'subscribe', function subscribe(observer) {
+	if (typeof observer === 'function') {
+		var args = Array.prototype.slice.call(arguments, 1)
+		observer = {
+			next: observer,
+			error: args[0],
+			complete: args[1]
+		}
+	}
+	return new Subscription(observer, this.__subscriber__)
+})
 
 Observable.prototype.forEach = function (fn) {
     var self = this

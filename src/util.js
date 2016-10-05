@@ -2,15 +2,19 @@ function isFunction(fn) {
 	return fn && typeof fn === 'function'
 }
 
-function parse(obj) {
-	if  (obj.length === 1 && Array.isArray(obj[0])) {
-		return obj[0]
-	} else {
-		var args = new Array(obj.length),
-			i = 0
-		while (i < args.length) {
-			args[i] = obj[i++]
-		}
-		return args
-	}
+function defineProperty(obj, propName, getter) {
+	Object.defineProperty(obj, propName, {
+		get: getter,
+		enumerable: false,
+		configurable: true
+	})
+}
+
+function defineMethod(obj, methodName, fn) {
+	Object.defineProperty(obj, methodName, {
+		value: fn,
+		writable: true,
+		enumerable: false,
+		configurable: true
+	})
 }
