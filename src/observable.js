@@ -40,3 +40,17 @@ Observable.prototype.forEach = function (fn) {
         })
     })
 }
+
+Observable.prototype.transform = function (transformer) {
+	var self = this
+	return new Observable(function (observer) {
+		return self.subscribe(
+			transformer(observer),
+			function (error) {
+				return observer.error(error)
+			},
+			function (value) {
+				return observer.complete(value)
+			})
+	})
+}
