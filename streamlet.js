@@ -10,7 +10,7 @@
     root.Streamlet = Observable;
   }
   function Observable(subscriber) {
-    if (typeof subscriber !== "function") {
+    if (!isFunction(subscriber)) {
       throw new TypeError("Observable initializer must be a function");
     }
     this.__subscriber__ = subscriber;
@@ -19,7 +19,7 @@
     return this;
   });
   defineMethod(Observable.prototype, "subscribe", function subscribe(observer) {
-    if (typeof observer === "function") {
+    if (isFunction(observer)) {
       var args = Array.prototype.slice.call(arguments, 1);
       observer = {
         next: observer,
@@ -32,7 +32,7 @@
   Observable.prototype.forEach = function(fn) {
     var self = this;
     return new Promise(function(resolve, reject) {
-      if (typeof fn !== "function") {
+      if (!isFunction(fn)) {
         return Promise.reject(new TypeError(fn + " is not a function"));
       }
       return self.subscribe({
@@ -59,12 +59,12 @@
     });
   };
   function Subscription(observer, subscriber) {
-    if (typeof observer !== "object") {
+    if (!isObject(observer)) {
       throw new TypeError("Observer must be an object");
     }
     this.__observer__ = observer;
     this.__cleanup__ = undefined;
-    if (typeof observer.start === "function") {
+    if (isFunction(observer.start)) {
       observer.start(this);
       if (Subscription.isClosed(this)) return;
     }
@@ -83,10 +83,10 @@
         cleanup = subscriber(observer);
       }
       if (cleanup != null) {
-        if (typeof cleanup.unsubscribe === "function") {
+        if (isFunction(cleanup.unsubscribe)) {
           cleanup = Subscription.wrapCleanup(cleanup);
-        } else if (typeof cleanup !== "function") {
-          throw new TypeError(cleanup + " is not a function");
+        } else {
+          ensureFunction(cleanup || 1);
         }
         this.__cleanup__ = cleanup;
       }
@@ -161,11 +161,8 @@
       subscription.__observer__ = undefined;
     }
     try {
-      var fn = observer[type];
+      var fn = ensureFunction(observer[type]);
       if (fn) {
-        if (typeof fn !== "function") {
-          throw new TypeError(fn + " is not a function");
-        }
         data = fn(data);
       } else {
         if (type === Observer.FAILURE) {
@@ -191,7 +188,7 @@
   };
   defineMethod(Observable, "of", function of() {
     var args = Array.prototype.slice.call(arguments);
-    var Constructor = typeof this === "function" ? this : Observable;
+    var Constructor = isFunction(this) ? this : Observable;
     return new Constructor(function(observer) {
       for (var i = 0; i < args.length; ++i) {
         observer.next(args[i]);
@@ -200,10 +197,10 @@
     });
   });
   defineMethod(Observable, "from", function from(obj) {
-    if (obj == null) throw new TypeError(obj + " is not an object");
-    var Constructor = typeof this === "function" ? this : Observable;
-    var method = obj["@@observable"];
-    if (typeof method === "function") {
+    if (!isObject(obj)) throw new TypeError(obj + " is not an object");
+    var Constructor = isFunction(this) ? this : Observable;
+    var method = ensureFunction(obj["@@observable"]);
+    if (method) {
       var observable = method.call(obj);
       if (Object(observable) !== observable) throw new TypeError(observable + " is not an object");
       if (observable.constructor === Constructor) return observable;
@@ -211,7 +208,7 @@
         return observable.subscribe(observer);
       });
     }
-    if (typeof obj === "object" && typeof obj.next === "function") {
+    if (isObject(obj) && isFunction(obj.next)) {
       return new Constructor(function(observer) {
         var n;
         while (!(n = obj.next()).done) {
@@ -231,7 +228,16 @@
     throw new TypeError(obj + " is not observable");
   });
   function isFunction(fn) {
-    return fn && typeof fn === "function";
+    return typeof fn === "function";
+  }
+  function isObject(obj) {
+    return obj && typeof obj === "object";
+  }
+  function ensureFunction(fn) {
+    if (fn && !isFunction(fn)) {
+      throw new TypeError(fn + " is not a function");
+    }
+    return fn;
   }
   function defineProperty(obj, propName, getter) {
     Object.defineProperty(obj, propName, {
