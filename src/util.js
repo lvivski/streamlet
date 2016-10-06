@@ -1,5 +1,16 @@
 function isFunction(fn) {
-	return fn && typeof fn === 'function'
+	return typeof fn === 'function'
+}
+
+function isObject(obj) {
+	return obj && typeof obj === 'object'
+}
+
+function ensureFunction(fn) {
+	if(fn && !isFunction(fn)) {
+		throw new TypeError(fn + ' is not a function')
+	}
+	return fn
 }
 
 function defineProperty(obj, propName, getter) {

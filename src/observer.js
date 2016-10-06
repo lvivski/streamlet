@@ -46,11 +46,8 @@ Observer.handle = function (subscription, type, data) {
 		subscription.__observer__ = undefined
 	}
 	try {
-		var fn = observer[type]
+		var fn = ensureFunction(observer[type])
 		if (fn) {
-			if (typeof fn !== 'function') {
-				throw new TypeError(fn + " is not a function")
-			}
 			data = fn(data)
 		} else {
 			if (type === Observer.FAILURE) {

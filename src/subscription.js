@@ -1,12 +1,12 @@
 function Subscription(observer, subscriber) {
-    if (typeof observer !== 'object') {
+    if (!isObject(observer)) {
         throw new TypeError('Observer must be an object')
     }
     
     this.__observer__ = observer
     this.__cleanup__ = undefined
 
-    if (typeof observer.start === 'function') {
+    if (isFunction(observer.start)) {
         observer.start(this)
         if (Subscription.isClosed(this)) return
     }
@@ -26,12 +26,11 @@ function Subscription(observer, subscriber) {
         } else {
             cleanup = subscriber(observer)
         }
-
         if (cleanup != null) {
-            if (typeof cleanup.unsubscribe === 'function') {
+            if (isFunction(cleanup.unsubscribe)) {
                 cleanup = Subscription.wrapCleanup(cleanup)
-            } else if (typeof cleanup !== 'function') {
-                throw new TypeError(cleanup + " is not a function")
+            } else {
+                ensureFunction(cleanup || 1)
             }
             this.__cleanup__ = cleanup
         }

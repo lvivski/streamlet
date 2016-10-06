@@ -1,5 +1,5 @@
 function Observable(subscriber) {
-    if (typeof subscriber !== 'function') {
+    if (!isFunction(subscriber)) {
         throw new TypeError('Observable initializer must be a function')
     }
     this.__subscriber__ = subscriber
@@ -10,7 +10,7 @@ defineMethod(Observable.prototype, '@@observable', function $$observable() {
 })
 
 defineMethod(Observable.prototype, 'subscribe', function subscribe(observer) {
-	if (typeof observer === 'function') {
+	if (isFunction(observer)) {
 		var args = Array.prototype.slice.call(arguments, 1)
 		observer = {
 			next: observer,
@@ -24,7 +24,7 @@ defineMethod(Observable.prototype, 'subscribe', function subscribe(observer) {
 Observable.prototype.forEach = function (fn) {
     var self = this
     return new Promise(function (resolve, reject) {
-        if (typeof fn !== 'function') {
+        if (!isFunction(fn)) {
             return Promise.reject(new TypeError(fn + ' is not a function'))
         }
         return self.subscribe({
