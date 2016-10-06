@@ -91,7 +91,7 @@
         this.__cleanup__ = cleanup;
       }
     } catch (e) {
-      Observer.error(this, e);
+      observer.error(e);
     }
     if (Subscription.isClosed(this)) {
       Subscription.cleanup(this);
