@@ -2,7 +2,7 @@ function Subscription(observer, subscriber) {
     if (!isObject(observer)) {
         throw new TypeError('Observer must be an object')
     }
-    
+
     this.__observer__ = observer
     this.__cleanup__ = undefined
 

@@ -41,7 +41,7 @@ Observer.isDone = function(type) {
 }
 
 Observer.handle = function (subscription, type, data) {
-    if (Subscription.isClosed(subscription)) {
+  if (Subscription.isClosed(subscription)) {
 		if (type === Observer.FAILURE) throw data
 		return
 	}
